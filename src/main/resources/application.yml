@@ -1,0 +1,26 @@
+#Global configuration
+spring:
+  application:
+    name: eventManager
+  h2:
+    console:
+      enabled: true
+  
+  #Tomcat configuration
+server:
+  port: 9000
+  
+  #Log level configuration
+logging:
+  level:
+    #    root: ERROR
+    com:
+      openclassrooms: INFO
+    org:
+      springframework:
+        boot:
+          autoconfigure:
+            h2: INFO
+          web:
+            embedded:
+              tomcat: INFO
