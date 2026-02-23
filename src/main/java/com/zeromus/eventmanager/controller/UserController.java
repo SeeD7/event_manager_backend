@@ -3,11 +3,14 @@ package com.zeromus.eventmanager.controller;
 import com.zeromus.eventmanager.model.dto.UserDto;
 import com.zeromus.eventmanager.service.UserService;
 import jakarta.annotation.security.RolesAllowed;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.springframework.http.HttpStatus.*;
 
 @RestController
@@ -35,7 +38,6 @@ public class UserController {
         }
     }
 
-
     /**
      * Read - Get one user
      *
@@ -53,19 +55,70 @@ public class UserController {
     }
 
     /**
-     * Read - Get one user by his mail
+     * Read - Get one user by his email
      *
-     * @param mail The mail of the user
+     * @param email The email of the user
      * @return An User object full filled
      */
     @RolesAllowed({"USER", "ADMIN"})
-    @GetMapping("/user/mail/{mail}")
-    public ResponseEntity<UserDto> getUserByMail(@PathVariable final Long mail) {
+    @GetMapping("/user/email/{email}")
+    public ResponseEntity<UserDto> getUserByMail(@PathVariable final String email) {
         try {
-            return new ResponseEntity<>(userService.getUserById(mail), OK);
+            return new ResponseEntity<>(userService.getUserByEmail(email), OK);
         } catch (Exception _) {
             return new ResponseEntity<>(BAD_REQUEST);
         }
+    }
+
+    /**
+     * Read - Get one user by his username
+     *
+     * @param username The username of the user
+     * @return An User object full filled
+     */
+    @RolesAllowed({"USER", "ADMIN"})
+    @GetMapping("/user/username/{username}")
+    public ResponseEntity<UserDto> getUserByUsername(@PathVariable final String username) {
+        try {
+            return new ResponseEntity<>(userService.getUserByUsername(username), OK);
+        } catch (Exception _) {
+            return new ResponseEntity<>(BAD_REQUEST);
+        }
+    }
+
+    /**
+     * Read - Get one user by his username
+     *
+     * @param username The username of the user
+     * @param email The username of the user
+     * @return An User object full filled
+     */
+    @GetMapping("/user/exists")
+    public ResponseEntity<Boolean> exists(@RequestParam(required = false) final String username, @RequestParam(required = false) final String email) {
+        if((isBlank(username) && isBlank(email)) || (!isBlank(username) && !isBlank(email))){
+            return new ResponseEntity<>(BAD_REQUEST);
+        }
+        if(!isBlank(username)){
+            try {
+                userService.getUserByUsername(username);
+                return new ResponseEntity<>(Boolean.TRUE, OK);
+            } catch (EntityNotFoundException _) {
+                return new ResponseEntity<>(Boolean.FALSE, OK);
+            } catch (Exception _) {
+                return new ResponseEntity<>(BAD_REQUEST);
+            }
+        }
+        if(!isBlank(email)){
+            try {
+                userService.getUserByEmail(email);
+                return new ResponseEntity<>(Boolean.TRUE, OK);
+            } catch (EntityNotFoundException _) {
+                return new ResponseEntity<>(Boolean.FALSE, OK);
+            } catch (Exception _) {
+                return new ResponseEntity<>(BAD_REQUEST);
+            }
+        }
+        return new ResponseEntity<>(BAD_REQUEST);
     }
 
     /**

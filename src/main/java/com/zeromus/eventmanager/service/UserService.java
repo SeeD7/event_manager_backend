@@ -1,5 +1,6 @@
 package com.zeromus.eventmanager.service;
 
+import com.zeromus.eventmanager.configuration.PasswordConfig;
 import com.zeromus.eventmanager.model.dto.UserDto;
 import com.zeromus.eventmanager.model.entity.User;
 import com.zeromus.eventmanager.model.mapper.UserMapper;
@@ -18,10 +19,12 @@ public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final PasswordConfig passwordConfig;
 
-    public UserService(final UserRepository userRepository, final UserMapper userMapper) {
+    public UserService(final UserRepository userRepository, final UserMapper userMapper, final PasswordConfig passwordConfig) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
+        this.passwordConfig = passwordConfig;
     }
 
     @Override
@@ -63,6 +66,7 @@ public class UserService implements UserDetailsService {
     }
 
     public UserDto addUser(UserDto user) {
+        user.setPassword(passwordConfig.passwordEncoder().encode(user.getPassword()));
         User newUser = userMapper.toEntity(user);
         return userMapper.toDto(userRepository.save(newUser));
     }
@@ -80,9 +84,9 @@ public class UserService implements UserDetailsService {
             if (lastName != null) {
                 currentUser.setLastName(lastName);
             }
-            String mail = user.getEmail();
-            if (mail != null) {
-                currentUser.setEmail(mail);
+            String email = user.getEmail();
+            if (email != null) {
+                currentUser.setEmail(email);
             }
             String password = user.getPassword();
             if (password != null) {
