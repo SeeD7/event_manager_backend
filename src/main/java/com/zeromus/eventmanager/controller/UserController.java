@@ -1,17 +1,20 @@
 package com.zeromus.eventmanager.controller;
 
+import org.springframework.web.bind.annotation.*;
+import com.zeromus.eventmanager.model.dto.SecuredUserDto;
 import com.zeromus.eventmanager.model.dto.UserDto;
+import com.zeromus.eventmanager.model.enums.UserRole;
 import com.zeromus.eventmanager.service.UserService;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
-import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
 
-import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.springframework.http.HttpStatus.*;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @RestController
 @CrossOrigin
@@ -30,7 +33,7 @@ public class UserController {
      * @return The user object saved
      */
     @PostMapping("/user")
-    public ResponseEntity<UserDto> createUser(@Valid @RequestBody UserDto user) {
+    public ResponseEntity<UserDto> createUser(@Valid @RequestBody SecuredUserDto user) {
         try {
             return new ResponseEntity<>(userService.addUser(user), CREATED);
         } catch (Exception _) {
@@ -44,7 +47,7 @@ public class UserController {
      * @param id The id of the user
      * @return An User object full filled
      */
-    @RolesAllowed({"USER", "ADMIN"})
+    @RolesAllowed({"USER", "ORGANIZER", "ADMIN"})
     @GetMapping("/user/{id}")
     public ResponseEntity<UserDto> getUser(@PathVariable final Long id) {
         try {
@@ -60,7 +63,7 @@ public class UserController {
      * @param email The email of the user
      * @return An User object full filled
      */
-    @RolesAllowed({"USER", "ADMIN"})
+    @RolesAllowed({"USER", "ORGANIZER", "ADMIN"})
     @GetMapping("/user/email/{email}")
     public ResponseEntity<UserDto> getUserByMail(@PathVariable final String email) {
         try {
@@ -76,7 +79,7 @@ public class UserController {
      * @param username The username of the user
      * @return An User object full filled
      */
-    @RolesAllowed({"USER", "ADMIN"})
+    @RolesAllowed({"USER", "ORGANIZER", "ADMIN"})
     @GetMapping("/user/username/{username}")
     public ResponseEntity<UserDto> getUserByUsername(@PathVariable final String username) {
         try {
@@ -128,9 +131,9 @@ public class UserController {
      */
     @RolesAllowed({"ADMIN"})
     @GetMapping("/users")
-    public ResponseEntity<Iterable<UserDto>> getUsers() {
+    public ResponseEntity<Page<UserDto>> getUsers(Pageable pageable) {
         try {
-            return new ResponseEntity<>(userService.getAllUsers(), OK);
+            return new ResponseEntity<>(userService.getAllUsers(pageable), OK);
         } catch (Exception _) {
             return new ResponseEntity<>(BAD_REQUEST);
         }
@@ -143,11 +146,28 @@ public class UserController {
      * @param user - The user object updated
      * @return the updated user
      */
-    @RolesAllowed({"USER", "ADMIN"})
+    @RolesAllowed({"USER", "ORGANIZER", "ADMIN"})
     @PutMapping("/user/{id}")
     public ResponseEntity<UserDto> updateUser(@PathVariable final Long id, @RequestBody UserDto user) {
         try {
             return new ResponseEntity<>(userService.updateUser(id, user), OK);
+        } catch (Exception _) {
+            return new ResponseEntity<>(BAD_REQUEST);
+        }
+    }
+
+    /**
+     * Update - Update the role of an existing user
+     *
+     * @param id   - The id of the user to update
+     * @param role - The role to give
+     * @return the updated user
+     */
+    @RolesAllowed({"ADMIN"})
+    @PutMapping("/user/role/{id}")
+    public ResponseEntity<UserDto> updateRoleUser(@PathVariable final Long id, final UserRole role) {
+        try {
+            return new ResponseEntity<>(userService.updateRoleUser(id, role), OK);
         } catch (Exception _) {
             return new ResponseEntity<>(BAD_REQUEST);
         }
