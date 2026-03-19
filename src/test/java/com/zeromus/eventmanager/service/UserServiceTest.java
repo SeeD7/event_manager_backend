@@ -7,6 +7,7 @@ import com.zeromus.eventmanager.model.entity.User;
 import com.zeromus.eventmanager.model.enums.UserRole;
 import com.zeromus.eventmanager.model.mapper.UserMapper;
 import com.zeromus.eventmanager.repository.UserRepository;
+import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -129,11 +130,52 @@ class UserServiceTest {
     }
 
     @Test
+    void addUser_whenEmailAlreadyExists_ShouldReturnException() {
+        SecuredUserDto newDto = new SecuredUserDto(null, "Havard", "Nadda", "Lulu", UserRole.ADMIN, "lulu.trutru@mail.com", "blerg");
+        when(repository.findByEmail("lulu.trutru@mail.com")).thenReturn(Optional.of(entity));
+        Exception ex = assertThrows(EntityExistsException.class, () -> service.addUser(newDto));
+
+        assertExceptionMessageContains(ex, "User with email or username already exists");
+    }
+
+    @Test
+    void addUser_whenUsernameAlreadyExists_ShouldReturnException() {
+        SecuredUserDto newDto = new SecuredUserDto(null, "Havard", "Nadda", "Lulu", UserRole.ADMIN, "lulu.trutru@mail.com", "blerg");
+        when(repository.findByUsername("Lulu")).thenReturn(Optional.of(entity));
+        Exception ex = assertThrows(EntityExistsException.class, () -> service.addUser(newDto));
+
+        assertExceptionMessageContains(ex, "User with email or username already exists");
+    }
+
+    @Test
     void updateUser_WhenIdIsOk_ShouldReturnUpdatedDtoAndCallRepository() {
         when(repository.findById(1L)).thenReturn(Optional.of(entity));
         UserDto updatedDto = new UserDto(1L, "Ragnar", "Lothbrok", "Rara", UserRole.ADMIN, "ragnar.lothbrok@mail.com");
+        when(repository.findByEmail("ragnar.lothbrok@mail.com")).thenReturn(Optional.empty());
+        when(repository.findByUsername("Rara")).thenReturn(Optional.empty());
         service.updateUser(1L, updatedDto);
         verify(repository, times(1)).save(any());
+    }
+
+    @Test
+    void updateUser_WhenEmailAlreadyExists_ShouldReturnException() {
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+        UserDto updatedDto = new UserDto(1L, "Ragnar", "Lothbrok", "Rara", UserRole.ADMIN, "ragnar.lothbrok@mail.com");
+        when(repository.findByEmail("ragnar.lothbrok@mail.com")).thenReturn(Optional.of(entity));
+        Exception ex = assertThrows(EntityExistsException.class, () -> service.updateUser(1L, updatedDto));
+
+        assertExceptionMessageContains(ex, "User with email or username already exists");
+    }
+
+    @Test
+    void updateUser_WhenUsernameAlreadyExists_ShouldReturnException() {
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+        UserDto updatedDto = new UserDto(1L, "Ragnar", "Lothbrok", "Rara", UserRole.ADMIN, "ragnar.lothbrok@mail.com");
+        when(repository.findByEmail("ragnar.lothbrok@mail.com")).thenReturn(Optional.empty());
+        when(repository.findByUsername("Rara")).thenReturn(Optional.of(entity));
+        Exception ex = assertThrows(EntityExistsException.class, () -> service.updateUser(1L, updatedDto));
+
+        assertExceptionMessageContains(ex, "User with email or username already exists");
     }
 
     @Test

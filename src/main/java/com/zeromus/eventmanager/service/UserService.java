@@ -7,6 +7,7 @@ import com.zeromus.eventmanager.model.entity.User;
 import com.zeromus.eventmanager.model.enums.UserRole;
 import com.zeromus.eventmanager.model.mapper.UserMapper;
 import com.zeromus.eventmanager.repository.UserRepository;
+import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.jspecify.annotations.NullMarked;
@@ -72,6 +73,11 @@ public class UserService implements UserDetailsService {
     }
 
     public UserDto addUser(SecuredUserDto user) {
+        Optional<User> testUserEmail = userRepository.findByEmail(user.getEmail());
+        Optional<User> testUserUsername = userRepository.findByUsername(user.getUsername());
+        if (testUserEmail.isPresent() || testUserUsername.isPresent()) {
+            throw new EntityExistsException("User with email or username already exists");
+        }
         user.setPassword(passwordConfig.passwordEncoder().encode(user.getPassword()));
         User newUser = userMapper.toEntity(user);
         return userMapper.toDto(userRepository.save(newUser));
@@ -83,20 +89,27 @@ public class UserService implements UserDetailsService {
             User currentUser = e.get();
 
             String firstName = user.getFirstName();
-            if (firstName != null) {
+            if (!firstName.equals(currentUser.getFirstName())) {
                 currentUser.setFirstName(firstName);
             }
             String lastName = user.getLastName();
-            if (lastName != null) {
+            if (!lastName.equals(currentUser.getLastName())) {
                 currentUser.setLastName(lastName);
             }
             String email = user.getEmail();
-            if (email != null) {
+            if (!email.equals(currentUser.getEmail())) {
+                Optional<User> testUserEmail = userRepository.findByEmail(user.getEmail());
+                testUserEmail.ifPresentOrElse(_ -> currentUser.setEmail(email), () -> {
+                    throw new EntityExistsException("User with email or username already exists");
+                });
                 currentUser.setEmail(email);
             }
             String username = user.getUsername();
-            if (username != null) {
-                currentUser.setUsername(username);
+            if (!username.equals(currentUser.getUsername())) {
+                Optional<User> testUserUsername = userRepository.findByUsername(user.getUsername());
+                testUserUsername.ifPresentOrElse(_ -> currentUser.setUsername(username), () -> {
+                    throw new EntityExistsException("User with email or username already exists");
+                });
             }
             userRepository.save(currentUser);
             return userMapper.toDto(currentUser);
