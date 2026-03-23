@@ -209,6 +209,15 @@ class UserServiceTest {
     }
 
     @Test
+    void updatePassword_ShouldRepository() {
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+        when(passwordConfig.passwordEncoder()).thenReturn(passwordEncoder);
+        when(passwordEncoder.encode(anyString())).thenReturn("blerg");
+        service.updatePassword(1L, "Blerg");
+        verify(repository, times(1)).save(any());
+    }
+
+    @Test
     void deleteUser_WhenIdIsOk_ShouldCallRepository() {
         service.deleteUser(1L);
         verify(repository, times(1)).deleteById(any());

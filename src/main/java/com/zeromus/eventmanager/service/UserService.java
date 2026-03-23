@@ -99,22 +99,25 @@ public class UserService implements UserDetailsService {
             String email = user.getEmail();
             if (!email.equals(currentUser.getEmail())) {
                 Optional<User> testUserEmail = userRepository.findByEmail(user.getEmail());
-                testUserEmail.ifPresentOrElse(_ -> currentUser.setEmail(email), () -> {
-                    throw new EntityExistsException("User with email or username already exists");
-                });
+                ifPresentThrowException(testUserEmail);
                 currentUser.setEmail(email);
             }
             String username = user.getUsername();
             if (!username.equals(currentUser.getUsername())) {
                 Optional<User> testUserUsername = userRepository.findByUsername(user.getUsername());
-                testUserUsername.ifPresentOrElse(_ -> currentUser.setUsername(username), () -> {
-                    throw new EntityExistsException("User with email or username already exists");
-                });
+                ifPresentThrowException(testUserUsername);
+                currentUser.setUsername(username);
             }
             userRepository.save(currentUser);
             return userMapper.toDto(currentUser);
         } else {
             throw new EntityNotFoundException("User not found with id: " + id);
+        }
+    }
+
+    private static void ifPresentThrowException(Optional<User> user) {
+        if (user.isPresent()) {
+            throw new EntityExistsException("User with email or username already exists");
         }
     }
 
@@ -130,9 +133,16 @@ public class UserService implements UserDetailsService {
         }
     }
 
+    public void updatePassword(Long id, String newPassword) {
+        Optional<User> user = userRepository.findById(id);
+        if (user.isEmpty()) {
+            throw new EntityNotFoundException("User not found with ID: " + id);
+        }
+        user.get().setPassword(passwordConfig.passwordEncoder().encode(newPassword));
+        userRepository.save(user.get());
+    }
+
     public void deleteUser(final Long id) {
         userRepository.deleteById(id);
     }
-
-
 }

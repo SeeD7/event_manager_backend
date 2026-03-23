@@ -173,6 +173,22 @@ public class UserController {
         }
     }
 
+    /**
+     * Update - Update the password of an existing user
+     *
+     * @param id   - The id of the user to update
+     * @param password - The password to insert
+     * @return the updated user
+     */
+    @PutMapping("/user/password/{id}")
+    public ResponseEntity<Void> updatePasswordUser(@PathVariable final Long id, final String password) {
+        try {
+            userService.updatePassword(id, password);
+            return new ResponseEntity<>(OK);
+        } catch (Exception _) {
+            return new ResponseEntity<>(BAD_REQUEST);
+        }
+    }
 
     /**
      * Delete - Delete an user
