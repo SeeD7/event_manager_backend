@@ -1,6 +1,7 @@
 package com.zeromus.eventmanager.service;
 
 import com.zeromus.eventmanager.configuration.PasswordConfig;
+import com.zeromus.eventmanager.model.dto.SearchUserDto;
 import com.zeromus.eventmanager.model.dto.SecuredUserDto;
 import com.zeromus.eventmanager.model.dto.UserDto;
 import com.zeromus.eventmanager.model.entity.User;
@@ -110,10 +111,10 @@ class UserServiceTest {
 
     @Test
     void getAllUser_ShouldCallRepository() {
-        when(repository.findAll((Pageable) null)).thenReturn(new PageImpl<>(Collections.singletonList(entity)));
+        when(repository.findAll(null, (Pageable) null)).thenReturn(new PageImpl<>(Collections.singletonList(entity)));
         when(userMapper.toDto(entity)).thenReturn(expectedDto);
-        service.getAllUsers(null);
-        verify(repository, times(1)).findAll((Pageable) any());
+        service.getAllUsers(null,null);
+        verify(repository, times(1)).findAll(any(), (Pageable) any());
     }
 
     @Test
