@@ -1,0 +1,51 @@
+#Global configuration
+spring:
+  application:
+    name: eventManager
+  datasource:
+    url: jdbc:postgresql://localhost:5432/event-manager
+    username: postgres
+    password: azertyuiop123
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  jpa:
+    defer-datasource-initialization: true
+    hibernate: ddl-auto:create
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: true
+  sql:
+    init:
+      mode: always
+  
+  #Tomcat configuration
+server:
+  port: 9000
+  
+  #Log level configuration
+logging:
+  level:
+    #root: ERROR
+    com:
+      openclassrooms: INFO
+    org:
+      springframework:
+        boot:
+          autoconfigure:
+            h2: INFO
+          web:
+            embedded:
+              tomcat: INFO
+    hibernate:
+      SQL: DEBUG
+      orm:
+        jdbc:
+          bind: TRACE
+    type:
+      descriptor:
+        sql:
+          BasicBinder: TRACE
