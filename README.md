@@ -9,7 +9,7 @@ Les utilisateurs peuvent créer, publier et rejoindre des événements.
 
 ### Backend
 
-- Java 17
+- Java 26 (jdk-26.0.1)
 - Spring Boot
 - Spring Security (JWT)
 - JPA / Hibernate
