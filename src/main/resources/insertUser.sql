@@ -1,4 +1,4 @@
-INSERT INTO public.users (first_name, last_name, username, user_role, email, password) VALUES
+INSERT INTO public.em_users (first_name, last_name, username, user_role, email, password) VALUES
     ('Havard', 'Naddardson', 'Lulu', 'ADMIN', 'havard.naddardson@mail.com', '$2y$10$.qkbukzzX21D.bqbI.B2R.tvWP90o/Y16QRWVLodw51BHft7ZWbc.'),
     ('Leah', 'Glutenstein', 'Lele', 'ADMIN', 'leah.glutenstein@mail.com', '$2y$10$.qkbukzzX21D.bqbI.B2R.tvWP90o/Y16QRWVLodw51BHft7ZWbc.'),
 

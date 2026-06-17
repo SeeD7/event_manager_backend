@@ -1,7 +1,5 @@
 package com.zeromus.eventmanager.configuration;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zeromus.eventmanager.model.dto.SecuredUserDto;
 import com.zeromus.eventmanager.model.enums.UserRole;
 import com.zeromus.eventmanager.service.UserService;
@@ -14,6 +12,9 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -37,10 +38,12 @@ class SpringSecurityConfigMvcTest {
         mockMvc.perform(get("/user/exists").param("username", "Lulu"))
                 .andExpect(status().isOk());
 
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        JsonMapper mapper = JsonMapper.builder()
+                .enable(SerializationFeature.INDENT_OUTPUT)
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .build();
         SecuredUserDto newDto = new SecuredUserDto(null, "Havard", "Nadda", "Lulu", UserRole.ADMIN, "lulu.trutru@mail.com", "blerg");
-        String jsonContent = objectMapper.writeValueAsString(newDto);
+        String jsonContent = mapper.writeValueAsString(newDto);
 
         when(userService.addUser(any())).thenReturn(null);
 
