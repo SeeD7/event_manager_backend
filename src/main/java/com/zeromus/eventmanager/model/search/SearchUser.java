@@ -1,4 +1,4 @@
-package com.zeromus.eventmanager.model.dto;
+package com.zeromus.eventmanager.model.search;
 
 import com.zeromus.eventmanager.model.entity.User;
 import com.zeromus.eventmanager.model.entity.User_;
@@ -11,6 +11,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.ArrayList;
@@ -23,7 +24,7 @@ import static org.apache.commons.lang3.StringUtils.*;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class SearchUserDto implements Specification<User> {
+public class SearchUser implements Specification<User> {
     private String firstName;
     private String lastName;
     private String username;
@@ -31,7 +32,7 @@ public class SearchUserDto implements Specification<User> {
     private String email;
 
     @Override
-    public Predicate toPredicate(Root<User> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
+    public Predicate toPredicate(@NonNull Root<User> root, @NonNull CriteriaQuery<?> query, @NonNull CriteriaBuilder cb) {
         final List<Predicate> predicates = new ArrayList<>();
 
         if (isNotBlank(firstName)) {

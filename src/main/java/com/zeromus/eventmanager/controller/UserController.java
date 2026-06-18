@@ -1,6 +1,6 @@
 package com.zeromus.eventmanager.controller;
 
-import com.zeromus.eventmanager.model.dto.SearchUserDto;
+import com.zeromus.eventmanager.model.search.SearchUser;
 import org.springframework.web.bind.annotation.*;
 import com.zeromus.eventmanager.model.dto.SecuredUserDto;
 import com.zeromus.eventmanager.model.dto.UserDto;
@@ -132,9 +132,9 @@ public class UserController {
      */
     @RolesAllowed({"ADMIN"})
     @GetMapping("/users")
-    public ResponseEntity<Page<UserDto>> getUsers(SearchUserDto search, Pageable pageable) {
+    public ResponseEntity<Page<UserDto>> getUsers(SearchUser search, Pageable pageable) {
         try {
-            return new ResponseEntity<>(userService.getAllUsers(search, pageable), OK);
+            return new ResponseEntity<>(userService.getAllUsersPaged(search, pageable), OK);
         } catch (Exception _) {
             return new ResponseEntity<>(BAD_REQUEST);
         }

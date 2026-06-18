@@ -1,7 +1,7 @@
 package com.zeromus.eventmanager.service;
 
 import com.zeromus.eventmanager.configuration.PasswordConfig;
-import com.zeromus.eventmanager.model.dto.SearchUserDto;
+import com.zeromus.eventmanager.model.search.SearchUser;
 import com.zeromus.eventmanager.model.dto.SecuredUserDto;
 import com.zeromus.eventmanager.model.dto.UserDto;
 import com.zeromus.eventmanager.model.entity.User;
@@ -69,16 +69,11 @@ public class UserService implements UserDetailsService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + email));
     }
 
-    public Page<UserDto> getAllUsers(SearchUserDto search, Pageable pageable) {
+    public Page<UserDto> getAllUsersPaged(SearchUser search, Pageable pageable) {
         return userRepository.findAll(search, pageable).map(userMapper::toDto);
     }
 
     public UserDto addUser(SecuredUserDto user) {
-        Optional<User> testUserEmail = userRepository.findByEmail(user.getEmail());
-        Optional<User> testUserUsername = userRepository.findByUsername(user.getUsername());
-        if (testUserEmail.isPresent() || testUserUsername.isPresent()) {
-            throw new EntityExistsException("User with email or username already exists");
-        }
         user.setPassword(passwordConfig.passwordEncoder().encode(user.getPassword()));
         User newUser = userMapper.toEntity(user);
         return userMapper.toDto(userRepository.save(newUser));

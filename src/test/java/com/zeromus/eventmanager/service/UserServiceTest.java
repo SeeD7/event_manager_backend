@@ -1,13 +1,14 @@
 package com.zeromus.eventmanager.service;
 
 import com.zeromus.eventmanager.configuration.PasswordConfig;
-import com.zeromus.eventmanager.model.dto.SearchUserDto;
 import com.zeromus.eventmanager.model.dto.SecuredUserDto;
 import com.zeromus.eventmanager.model.dto.UserDto;
 import com.zeromus.eventmanager.model.entity.User;
 import com.zeromus.eventmanager.model.enums.UserRole;
 import com.zeromus.eventmanager.model.mapper.UserMapper;
+import com.zeromus.eventmanager.model.search.SearchUser;
 import com.zeromus.eventmanager.repository.UserRepository;
+import com.zeromus.eventmanager.utils.AssertionUtils;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import org.assertj.core.api.Assertions;
@@ -17,7 +18,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,7 +30,6 @@ import java.util.Optional;
 
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 
 @ExtendWith(MockitoExtension.class)
@@ -58,7 +60,7 @@ class UserServiceTest {
         when(repository.findByUsername("Blerg")).thenReturn(Optional.empty());
         Exception ex = assertThrows(UsernameNotFoundException.class, () -> service.loadUserByUsername("Blerg"));
 
-        assertExceptionMessageContains(ex, "User not found with username: Blerg");
+        AssertionUtils.assertExceptionMessageContains(ex, "User not found with username: Blerg");
     }
 
     @Test
@@ -74,7 +76,7 @@ class UserServiceTest {
         when(repository.findById(2L)).thenReturn(Optional.empty());
         Exception ex = assertThrows(EntityNotFoundException.class, () -> service.getUserById(2L));
 
-        assertExceptionMessageContains(ex, "User not found with ID: 2");
+        AssertionUtils.assertExceptionMessageContains(ex, "User not found with ID: 2");
     }
 
     @Test
@@ -90,7 +92,7 @@ class UserServiceTest {
         when(repository.findByEmail("whatever@mail.com")).thenReturn(Optional.empty());
         Exception ex = assertThrows(EntityNotFoundException.class, () -> service.getUserByEmail("whatever@mail.com"));
 
-        assertExceptionMessageContains(ex, "User not found with email: whatever@mail.com");
+        AssertionUtils.assertExceptionMessageContains(ex, "User not found with email: whatever@mail.com");
     }
 
     @Test
@@ -106,14 +108,16 @@ class UserServiceTest {
         when(repository.findByUsername("Blerg")).thenReturn(Optional.empty());
         Exception ex = assertThrows(EntityNotFoundException.class, () -> service.getUserByUsername("Blerg"));
 
-        assertExceptionMessageContains(ex, "User not found with username: Blerg");
+        AssertionUtils.assertExceptionMessageContains(ex, "User not found with username: Blerg");
     }
 
     @Test
     void getAllUser_ShouldCallRepository() {
-        when(repository.findAll(null, (Pageable) null)).thenReturn(new PageImpl<>(Collections.singletonList(entity)));
+        final SearchUser search = new SearchUser();
+        final Pageable pageable = PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "id"));
+        when(repository.findAll(search, pageable)).thenReturn(new PageImpl<>(Collections.singletonList(entity)));
         when(userMapper.toDto(entity)).thenReturn(expectedDto);
-        service.getAllUsers(null,null);
+        service.getAllUsersPaged(search,pageable);
         verify(repository, times(1)).findAll(any(), (Pageable) any());
     }
 
@@ -128,24 +132,6 @@ class UserServiceTest {
         UserDto result = service.addUser(newDto);
         Assertions.assertThat(result).isEqualTo(expectedDto);
         verify(repository, times(1)).save(any());
-    }
-
-    @Test
-    void addUser_whenEmailAlreadyExists_ShouldReturnException() {
-        SecuredUserDto newDto = new SecuredUserDto(null, "Havard", "Nadda", "Lulu", UserRole.ADMIN, "lulu.trutru@mail.com", "blerg");
-        when(repository.findByEmail("lulu.trutru@mail.com")).thenReturn(Optional.of(entity));
-        Exception ex = assertThrows(EntityExistsException.class, () -> service.addUser(newDto));
-
-        assertExceptionMessageContains(ex, "User with email or username already exists");
-    }
-
-    @Test
-    void addUser_whenUsernameAlreadyExists_ShouldReturnException() {
-        SecuredUserDto newDto = new SecuredUserDto(null, "Havard", "Nadda", "Lulu", UserRole.ADMIN, "lulu.trutru@mail.com", "blerg");
-        when(repository.findByUsername("Lulu")).thenReturn(Optional.of(entity));
-        Exception ex = assertThrows(EntityExistsException.class, () -> service.addUser(newDto));
-
-        assertExceptionMessageContains(ex, "User with email or username already exists");
     }
 
     @Test
@@ -165,7 +151,7 @@ class UserServiceTest {
         when(repository.findByEmail("ragnar.lothbrok@mail.com")).thenReturn(Optional.of(entity));
         Exception ex = assertThrows(EntityExistsException.class, () -> service.updateUser(1L, updatedDto));
 
-        assertExceptionMessageContains(ex, "User with email or username already exists");
+        AssertionUtils.assertExceptionMessageContains(ex, "User with email or username already exists");
     }
 
     @Test
@@ -176,7 +162,7 @@ class UserServiceTest {
         when(repository.findByUsername("Rara")).thenReturn(Optional.of(entity));
         Exception ex = assertThrows(EntityExistsException.class, () -> service.updateUser(1L, updatedDto));
 
-        assertExceptionMessageContains(ex, "User with email or username already exists");
+        AssertionUtils.assertExceptionMessageContains(ex, "User with email or username already exists");
     }
 
     @Test
@@ -191,7 +177,7 @@ class UserServiceTest {
         when(repository.findById(2L)).thenReturn(Optional.empty());
         Exception ex = assertThrows(EntityNotFoundException.class, () -> service.updateUser(2L, expectedDto));
 
-        assertExceptionMessageContains(ex, "User not found with id: 2");
+        AssertionUtils.assertExceptionMessageContains(ex, "User not found with id: 2");
     }
 
     @Test
@@ -206,7 +192,7 @@ class UserServiceTest {
         when(repository.findById(2L)).thenReturn(Optional.empty());
         Exception ex = assertThrows(EntityNotFoundException.class, () -> service.updateRoleUser(2L, UserRole.USER));
 
-        assertExceptionMessageContains(ex, "User not found with id: 2");
+        AssertionUtils.assertExceptionMessageContains(ex, "User not found with id: 2");
     }
 
     @Test
@@ -228,10 +214,5 @@ class UserServiceTest {
     void deleteUser_WhenIdIsUnknown_ShouldCallRepository() {
         service.deleteUser(2L);
         verify(repository, times(1)).deleteById(any());
-    }
-
-    private static void assertExceptionMessageContains(Exception exception, String message) {
-        String actualMessage = exception.getMessage();
-        assertTrue(actualMessage.contains(message));
     }
 }
