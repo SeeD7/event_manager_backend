@@ -1,7 +1,7 @@
 package com.zeromus.eventmanager.controller;
 
 import com.zeromus.eventmanager.model.dto.EventCategoryDto;
-import com.zeromus.eventmanager.service.EventCategoryService;
+import com.zeromus.eventmanager.service.IEventCategoryService;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -12,30 +12,29 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.*;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.OK;
 
 @RestController
 @CrossOrigin
 @RequestMapping("event-category")
 public class EventCategoryController {
 
-    private final EventCategoryService service;
+    private final IEventCategoryService service;
 
-    public EventCategoryController(final EventCategoryService service) {
+    public EventCategoryController(final IEventCategoryService service) {
         this.service = service;
     }
 
     /**
      * Create - Add a new EventCategory
      *
-     * @param EventCategory An object EventCategory
+     * @param eventCategory An object EventCategory
      * @return The EventCategory object saved
      */
+    @RolesAllowed({"ORGANIZER", "ADMIN"})
     @PostMapping
-    public ResponseEntity<EventCategoryDto> createEventCategory(@Valid @RequestBody EventCategoryDto EventCategory) {
+    public ResponseEntity<EventCategoryDto> createEventCategory(@Valid @RequestBody EventCategoryDto eventCategory) {
         try {
-            return new ResponseEntity<>(service.addEventCategory(EventCategory), CREATED);
+            return new ResponseEntity<>(service.addEventCategory(eventCategory), CREATED);
         } catch (Exception _) {
             return new ResponseEntity<>(BAD_REQUEST);
         }
@@ -55,6 +54,34 @@ public class EventCategoryController {
         } catch (Exception _) {
             return new ResponseEntity<>(BAD_REQUEST);
         }
+    }
+
+    /**
+     * Read - Get one EventCategory by his name
+     *
+     * @param name The name of the EventCategory
+     * @return An EventCategory object full filled
+     */
+    @RolesAllowed({"USER", "ORGANIZER", "ADMIN"})
+    @GetMapping("/name")
+    public ResponseEntity<EventCategoryDto> getEventCategoryByName(@RequestParam final String name) {
+        return service.getEventCategoryByName(name)
+                .map(categoryDto -> new ResponseEntity<>(categoryDto, OK))
+                .orElseGet(() -> new ResponseEntity<>(NOT_FOUND));
+    }
+
+    /**
+     * Read - Verify if a category name already exists
+     *
+     * @param name The name of the category
+     * @return True if it exists, else false
+     */
+    @RolesAllowed({"ORGANIZER", "ADMIN"})
+    @GetMapping("/exists")
+    public ResponseEntity<Boolean> exists(@RequestParam final String name) {
+        return service.getEventCategoryByName(name)
+                .map(_ -> new ResponseEntity<>(true, OK))
+                .orElseGet(() -> new ResponseEntity<>(false, OK));
     }
 
     /**
@@ -90,11 +117,11 @@ public class EventCategoryController {
     /**
      * Update - Update an existing EventCategory
      *
-     * @param id   - The id of the EventCategory to update
+     * @param id            - The id of the EventCategory to update
      * @param EventCategory - The EventCategory object updated
      * @return the updated EventCategory
      */
-    @RolesAllowed({"USER", "ORGANIZER", "ADMIN"})
+    @RolesAllowed({"ORGANIZER", "ADMIN"})
     @PutMapping("/{id}")
     public ResponseEntity<EventCategoryDto> updateEventCategory(@PathVariable final Long id, @RequestBody EventCategoryDto EventCategory) {
         try {

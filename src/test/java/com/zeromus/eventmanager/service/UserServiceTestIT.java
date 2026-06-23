@@ -1,9 +1,9 @@
 package com.zeromus.eventmanager.service;
 
 import com.zeromus.eventmanager.model.dto.SecuredUserDto;
-import com.zeromus.eventmanager.model.search.SearchUser;
 import com.zeromus.eventmanager.model.dto.UserDto;
 import com.zeromus.eventmanager.model.enums.UserRole;
+import com.zeromus.eventmanager.model.search.SearchUser;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -33,7 +33,7 @@ class UserServiceTestIT {
     private static final Logger LOGGER = Logger.getLogger(UserServiceTestIT.class.getName());
 
     @Autowired
-    private UserService service;
+    private IUserService service;
 
     @BeforeAll
     static void setup(@Autowired DataSource dataSource) {
@@ -62,7 +62,6 @@ class UserServiceTestIT {
         Assertions.assertThat(result.getTotalElements()).isEqualTo(5);
         Assertions.assertThat(result.getNumberOfElements()).isEqualTo(1);
     }
-
 
 
     @Test

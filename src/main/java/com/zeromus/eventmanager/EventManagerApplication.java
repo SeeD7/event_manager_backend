@@ -8,7 +8,8 @@ import org.springframework.data.web.config.EnableSpringDataWebSupport;
 @SpringBootApplication
 public class EventManagerApplication {
 
-    private EventManagerApplication() {}
+    private EventManagerApplication() {
+    }
 
     static void main(String[] args) {
         SpringApplication.run(EventManagerApplication.class, args);

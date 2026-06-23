@@ -1,7 +1,7 @@
 package com.zeromus.eventmanager.model.search;
 
-import com.zeromus.eventmanager.model.entity.EventCategory;
 import com.zeromus.eventmanager.model.entity.Event;
+import com.zeromus.eventmanager.model.entity.EventCategory;
 import com.zeromus.eventmanager.model.entity.EventCategory_;
 import com.zeromus.eventmanager.model.entity.Event_;
 import com.zeromus.eventmanager.model.enums.EventState;
@@ -64,7 +64,7 @@ public class SearchEvent implements Specification<Event> {
 
         if (Objects.nonNull(states) && !states.isEmpty()) {
             final List<Predicate> statePredicates = new ArrayList<>();
-            for(EventState sta : states){
+            for (EventState sta : states) {
                 statePredicates.add(cb.like(root.get(Event_.STATE), sta.toString()));
             }
             finalPredicate = cb.and(cb.or(statePredicates.toArray(Predicate[]::new)), finalPredicate);

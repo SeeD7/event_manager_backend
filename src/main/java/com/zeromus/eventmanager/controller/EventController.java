@@ -1,8 +1,10 @@
 package com.zeromus.eventmanager.controller;
 
+import com.zeromus.eventmanager.exceptions.EventNotPublishedException;
 import com.zeromus.eventmanager.model.dto.EventDto;
+import com.zeromus.eventmanager.model.enums.EventState;
 import com.zeromus.eventmanager.model.search.SearchEvent;
-import com.zeromus.eventmanager.service.EventService;
+import com.zeromus.eventmanager.service.IEventService;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -13,17 +15,15 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.*;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.OK;
 
 @RestController
 @CrossOrigin
 @RequestMapping("user")
 public class EventController {
 
-    private final EventService service;
+    private final IEventService service;
 
-    public EventController(final EventService service) {
+    public EventController(final IEventService service) {
         this.service = service;
     }
 
@@ -92,28 +92,102 @@ public class EventController {
     /**
      * Update - Update an existing event
      *
-     * @param id   - The id of the event to update
      * @param event - The event object updated
      * @return the updated event
      */
     @RolesAllowed({"ORGANIZER", "ADMIN"})
-    @PutMapping("/event/{id}")
-    public ResponseEntity<EventDto> updateEvent(@PathVariable final Long id, @RequestBody EventDto event) {
+    @PutMapping("/event")
+    public ResponseEntity<EventDto> updateEvent(@Valid @RequestBody EventDto event) {
         try {
-            return new ResponseEntity<>(service.updateEvent(id, event), OK);
+            return new ResponseEntity<>(service.updateEvent(event), OK);
         } catch (Exception _) {
             return new ResponseEntity<>(BAD_REQUEST);
         }
     }
 
     /**
-     * Delete - Delete an event
+     * Update - Add a user on an Event if there's spot available
      *
-     * @param id - The id of the event to delete
+     * @param idEvent The id of the event the user would like to participate to
+     * @param idUser The id of the user
+     * @return If there's enough spot available
+     */
+    @RolesAllowed({"USER", "ORGANIZER", "ADMIN"})
+    @PutMapping("/event/{idEvent}/{idUser}")
+    public ResponseEntity<Boolean> participate(@PathVariable final Long idEvent, @PathVariable final Long idUser) {
+        try {
+            return new ResponseEntity<>(service.addParticipant(idEvent, idUser), CREATED);
+        } catch (EventNotPublishedException _) {
+            return new ResponseEntity<>(NOT_ACCEPTABLE);
+        } catch (Exception _) {
+            return new ResponseEntity<>(BAD_REQUEST);
+        }
+    }
+
+    /**
+     * Delete - remove a user from an Event
+     *
+     * @param idEvent The id of the event the user would like to not participate to
+     * @param idUser The id of the user
+     * @return The event object saved
+     */
+    @RolesAllowed({"USER", "ORGANIZER", "ADMIN"})
+    @DeleteMapping("/event/{idEvent}/{idUser}")
+    public ResponseEntity<Void> cancel(@PathVariable final Long idEvent, @PathVariable final Long idUser) {
+        try {
+            service.removeParticipant(idEvent, idUser);
+            return new ResponseEntity<>(OK);
+        } catch (Exception _) {
+            return new ResponseEntity<>(BAD_REQUEST);
+        }
+    }
+
+    /**
+     * Update - Put an event at published state
+     *
+     * @param idEvent The id of the event to publish
+     * @return The event object saved
      */
     @RolesAllowed({"ORGANIZER", "ADMIN"})
-    @DeleteMapping("/event/{id}")
-    public void deleteEvent(@PathVariable final Long id) {
-        service.deleteEvent(id);
+    @PutMapping("/event/{idEvent}/publish")
+    public ResponseEntity<EventDto> publish(@PathVariable final Long idEvent) {
+        try {
+            return new ResponseEntity<>(service.changeState(idEvent, EventState.PUBLISHED), OK);
+        } catch (Exception _) {
+            return new ResponseEntity<>(BAD_REQUEST);
+        }
+    }
+
+    /**
+     * Update - Put an event at draft state
+     *
+     * @param idEvent The id of the event the user would like put in draft state
+     * @return The event object saved
+     */
+    @RolesAllowed({"ORGANIZER", "ADMIN"})
+    @PutMapping("/event/{idEvent}/draft")
+    public ResponseEntity<EventDto> draft(@PathVariable final Long idEvent) {
+        try {
+            return new ResponseEntity<>(service.changeState(idEvent, EventState.DRAFT), OK);
+        } catch (Exception _) {
+            return new ResponseEntity<>(BAD_REQUEST);
+        }
+    }
+
+    /**
+     * Update - Put an event at deleted state
+     *
+     * @param idEvent The id of the event the user would like to cancel
+     * @return The event object saved
+     */
+    @RolesAllowed({"ORGANIZER", "ADMIN"})
+    @PutMapping("/event/{idEvent}/delete")
+    public ResponseEntity<Void> delete(@PathVariable final Long idEvent) {
+        try {
+            service.changeState(idEvent, EventState.DELETED);
+            return new ResponseEntity<>(OK);
+        } catch (Exception _) {
+            return new ResponseEntity<>(BAD_REQUEST);
+        }
     }
 }

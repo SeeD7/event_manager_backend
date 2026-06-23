@@ -4,7 +4,10 @@ import com.zeromus.eventmanager.model.dto.EventCategoryDto;
 import com.zeromus.eventmanager.model.entity.EventCategory;
 import com.zeromus.eventmanager.model.mapper.EventCategoryMapper;
 import com.zeromus.eventmanager.repository.EventCategoryRepository;
+import com.zeromus.eventmanager.service.impl.EventCategoryService;
+import com.zeromus.eventmanager.service.impl.UserService;
 import com.zeromus.eventmanager.utils.AssertionUtils;
+import com.zeromus.eventmanager.utils.UserUtils;
 import jakarta.persistence.EntityNotFoundException;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -27,13 +30,15 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class EventCategoryServiceTest {
 
-    private final EventCategory entity = new EventCategory(1L, "Sport");
-    private final EventCategoryDto expectedDto = new EventCategoryDto(1L, "Sport");
+    private final EventCategory entity = EventCategory.builder().id(1L).name("Sport").build();
+    private final EventCategoryDto expectedDto = EventCategoryDto.builder().id(1L).name("Sport").build();
 
     @Mock
     private EventCategoryRepository repository;
     @Mock
     private EventCategoryMapper eventCategoryMapper;
+    @Mock
+    private UserService userService;
     @InjectMocks
     private EventCategoryService service;
 
@@ -66,16 +71,17 @@ class EventCategoryServiceTest {
         final Pageable pageable = PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "id"));
         when(repository.findAll(pageable)).thenReturn(new PageImpl<>(Collections.singletonList(entity)));
         when(eventCategoryMapper.toDto(entity)).thenReturn(expectedDto);
-        service.getAllEventCategoryPaged(null);
+        service.getAllEventCategoryPaged(pageable);
         verify(repository, times(1)).findAll((Pageable) any());
     }
 
     @Test
     void addEventCategory_ShouldReturnEventCategoryAndCallRepository() {
-        EventCategoryDto newDto = new EventCategoryDto(null, "Musique");
+        EventCategoryDto newDto = EventCategoryDto.builder().name("Musique").creator("Lulu").build();
         when(eventCategoryMapper.toEntity(newDto)).thenReturn(entity);
         when(eventCategoryMapper.toDto(entity)).thenReturn(expectedDto);
         when(repository.save(entity)).thenReturn(entity);
+        when(userService.getUserEntityByUsername("Lulu")).thenReturn(UserUtils.USER_ENTITY);
         EventCategoryDto result = service.addEventCategory(newDto);
         Assertions.assertThat(result).isEqualTo(expectedDto);
         verify(repository, times(1)).save(any());
@@ -83,7 +89,11 @@ class EventCategoryServiceTest {
 
     @Test
     void updateEventCategory_WhenIdIsOk_ShouldReturnUpdatedDtoAndCallRepository() {
-        EventCategoryDto updatedDto = new EventCategoryDto(1L, "Musique");
+        EventCategoryDto updatedDto = EventCategoryDto.builder().id(1L).name("Musique").lastUpdater("Lulu").build();
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+        when(userService.getUserEntityByUsername("Lulu")).thenReturn(UserUtils.USER_ENTITY);
+        when(eventCategoryMapper.toDto(entity)).thenReturn(updatedDto);
+        when(repository.save(any())).thenReturn(entity);
         service.updateEventCategory(1L, updatedDto);
         verify(repository, times(1)).save(any());
     }

@@ -1,10 +1,14 @@
 package com.zeromus.eventmanager.service;
 
+import com.zeromus.eventmanager.exceptions.EventNotPublishedException;
 import com.zeromus.eventmanager.model.dto.EventDto;
 import com.zeromus.eventmanager.model.entity.Event;
+import com.zeromus.eventmanager.model.enums.EventState;
 import com.zeromus.eventmanager.model.mapper.EventMapper;
 import com.zeromus.eventmanager.model.search.SearchEvent;
 import com.zeromus.eventmanager.repository.EventRepository;
+import com.zeromus.eventmanager.service.impl.EventService;
+import com.zeromus.eventmanager.service.impl.UserService;
 import com.zeromus.eventmanager.utils.AssertionUtils;
 import com.zeromus.eventmanager.utils.EventUtils;
 import jakarta.persistence.EntityNotFoundException;
@@ -24,7 +28,9 @@ import java.util.Optional;
 
 import static com.zeromus.eventmanager.utils.EventUtils.createValidTestEvent;
 import static com.zeromus.eventmanager.utils.EventUtils.createValidTestEventDto;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static com.zeromus.eventmanager.utils.UserUtils.USER_DTO;
+import static com.zeromus.eventmanager.utils.UserUtils.USER_ENTITY;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -41,6 +47,8 @@ class EventServiceTest {
     private EventRepository repository;
     @Mock
     private EventMapper mapper;
+    @Mock
+    private UserService userService;
     @InjectMocks
     private EventService service;
 
@@ -88,7 +96,7 @@ class EventServiceTest {
     void getAllEventsPaged_ShouldCallRepository() {
         when(repository.findAll(search, pageable)).thenReturn(new PageImpl<>(Collections.singletonList(entity)));
         when(mapper.toDto(entity)).thenReturn(expectedDto);
-        service.getAllEventsPaged(search,pageable);
+        service.getAllEventsPaged(search, pageable);
         verify(repository, times(1)).findAll(any(), (Pageable) any());
     }
 
@@ -107,37 +115,96 @@ class EventServiceTest {
 
     @Test
     void updateEvent_WhenIdIsOk_ShouldReturnUpdatedDtoAndCallRepository() {
-        when(repository.findById(1L)).thenReturn(Optional.of(entity));
         EventDto updatedDto = createValidTestEventDto();
         updatedDto.setName("Un petit nom");
-        service.updateEvent(1L, updatedDto);
+        service.updateEvent(updatedDto);
         verify(repository, times(1)).save(any());
     }
 
     @Test
     void updateEvent_WhenIdIsOkAndNothingChanged_ShouldReturnUpdatedDtoAndCallRepository() {
-        when(repository.findById(1L)).thenReturn(Optional.of(entity));
-        service.updateEvent(1L, expectedDto);
+        service.updateEvent(expectedDto);
         verify(repository, times(1)).save(any());
     }
 
     @Test
-    void updateEvent_WhenIdIsUnknown_ShouldReturnException() {
-        when(repository.findById(2L)).thenReturn(Optional.empty());
-        Exception ex = assertThrows(EntityNotFoundException.class, () -> service.updateEvent(2L, expectedDto));
-
-        AssertionUtils.assertExceptionMessageContains(ex, "Event not found with id: 2");
+    void participateEvent_WhenNoSpotAvailableDefined_ShouldCallRepository() throws EventNotPublishedException {
+        when(userService.getUserById(1L)).thenReturn(USER_DTO);
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+        boolean result = service.addParticipant(1L,1L);
+        verify(repository, times(1)).save(any());
+        assertTrue(result);
     }
 
     @Test
-    void deleteEvent_WhenIdIsOk_ShouldCallRepository() {
-        service.deleteEvent(1L);
-        verify(repository, times(1)).deleteById(any());
+    void participateEvent_WhenSpotAvailable_ShouldCallRepository() throws EventNotPublishedException {
+        when(userService.getUserById(1L)).thenReturn(USER_DTO);
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+        boolean result = service.addParticipant(1L,1L);
+        verify(repository, times(1)).save(any());
+        assertTrue(result);
     }
 
     @Test
-    void deleteEvent_WhenIdIsUnknown_ShouldCallRepository() {
-        service.deleteEvent(2L);
-        verify(repository, times(1)).deleteById(any());
+    void participateEvent_WhenNoSpotAvailable_ShouldCallRepository() throws EventNotPublishedException {
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+        entity.addParticipant(USER_ENTITY);
+        boolean result = service.addParticipant(1L,1L);
+        verify(repository, times(0)).save(any());
+        assertFalse(result);
+    }
+
+    @Test
+    void participateEvent_WhenEventNotPublished_ThrowsException() {
+        entity.setState(EventState.DRAFT);
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+        Exception ex = assertThrows(EventNotPublishedException.class, () -> service.addParticipant(1L,1L));
+
+        AssertionUtils.assertExceptionMessageContains(ex, "L'évènement n'est pas publié");
+    }
+
+    @Test
+    void participateEvent_WhenEventDoesntExist_ThrowsException() {
+        when(repository.findById(1L)).thenReturn(Optional.empty());
+        Exception ex = assertThrows(EntityNotFoundException.class, () -> service.addParticipant(1L,1L));
+
+        AssertionUtils.assertExceptionMessageContains(ex, "Event not found with ID: " + 1L);
+    }
+
+    @Test
+    void cancelEvent_ShouldCallRepository() {
+        when(userService.getUserById(1L)).thenReturn(USER_DTO);
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+        service.removeParticipant(1L, 1L);
+        verify(repository, times(1)).save(any());
+    }
+
+    @Test
+    void cancelEvent_WhenEventDoesntExist_ThrowsException() {
+        when(repository.findById(1L)).thenReturn(Optional.empty());
+        Exception ex = assertThrows(EntityNotFoundException.class, () -> service.removeParticipant(1L,1L));
+
+        AssertionUtils.assertExceptionMessageContains(ex, "Event not found with ID: " + 1L);
+    }
+
+    @Test
+    void changeState_ShouldCallRepository() {
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+
+        int i =0;
+        for(EventState event : EventState.values()) {
+            service.changeState(1L, event);
+            verify(repository, times(++i)).save(any());
+        }
+    }
+
+    @Test
+    void changeState_WhenEventDoesntExist_ThrowsException() {
+        when(repository.findById(1L)).thenReturn(Optional.empty());
+        for(EventState event : EventState.values()) {
+            Exception ex = assertThrows(EntityNotFoundException.class, () -> service.changeState(1L, event));
+
+            AssertionUtils.assertExceptionMessageContains(ex, "Event not found with ID: " + 1L);
+        }
     }
 }

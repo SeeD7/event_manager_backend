@@ -1,6 +1,6 @@
 package com.zeromus.eventmanager.configuration;
 
-import com.zeromus.eventmanager.service.UserService;
+import com.zeromus.eventmanager.service.IUserService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,9 +25,9 @@ import java.util.List;
 @EnableMethodSecurity(jsr250Enabled = true)
 public class SpringSecurityConfig {
 
-    private final UserService userService;
+    private final IUserService userService;
 
-    public SpringSecurityConfig(final UserService userService) {
+    public SpringSecurityConfig(final IUserService userService) {
         this.userService = userService;
     }
 
@@ -55,7 +55,7 @@ public class SpringSecurityConfig {
                 )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((_, res, _) ->
-                            res.setStatus(HttpServletResponse.SC_UNAUTHORIZED)
+                                res.setStatus(HttpServletResponse.SC_UNAUTHORIZED)
                         )
                 );
 
@@ -74,6 +74,11 @@ public class SpringSecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     @Bean

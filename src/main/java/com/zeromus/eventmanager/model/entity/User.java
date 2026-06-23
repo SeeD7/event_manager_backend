@@ -1,7 +1,7 @@
 package com.zeromus.eventmanager.model.entity;
 
-import jakarta.persistence.*;
 import com.zeromus.eventmanager.model.enums.UserRole;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
