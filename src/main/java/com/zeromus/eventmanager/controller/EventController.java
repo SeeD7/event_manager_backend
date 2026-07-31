@@ -2,6 +2,7 @@ package com.zeromus.eventmanager.controller;
 
 import com.zeromus.eventmanager.exceptions.EventNotPublishedException;
 import com.zeromus.eventmanager.model.dto.EventDto;
+import com.zeromus.eventmanager.model.dto.EventFormDto;
 import com.zeromus.eventmanager.model.enums.EventState;
 import com.zeromus.eventmanager.model.search.SearchEvent;
 import com.zeromus.eventmanager.service.IEventService;
@@ -17,8 +18,7 @@ import java.util.List;
 import static org.springframework.http.HttpStatus.*;
 
 @RestController
-@CrossOrigin
-@RequestMapping("user")
+//@CrossOrigin
 public class EventController {
 
     private final IEventService service;
@@ -35,7 +35,7 @@ public class EventController {
      */
     @RolesAllowed({"ORGANIZER", "ADMIN"})
     @PostMapping("/event")
-    public ResponseEntity<EventDto> createEvent(@Valid @RequestBody EventDto event) {
+    public ResponseEntity<EventDto> createEvent(@Valid @RequestBody EventFormDto event) {
         try {
             return new ResponseEntity<>(service.addEvent(event), CREATED);
         } catch (Exception _) {
@@ -97,7 +97,7 @@ public class EventController {
      */
     @RolesAllowed({"ORGANIZER", "ADMIN"})
     @PutMapping("/event")
-    public ResponseEntity<EventDto> updateEvent(@Valid @RequestBody EventDto event) {
+    public ResponseEntity<EventDto> updateEvent(@Valid @RequestBody EventFormDto event) {
         try {
             return new ResponseEntity<>(service.updateEvent(event), OK);
         } catch (Exception _) {
@@ -116,7 +116,8 @@ public class EventController {
     @PutMapping("/event/{idEvent}/{idUser}")
     public ResponseEntity<Boolean> participate(@PathVariable final Long idEvent, @PathVariable final Long idUser) {
         try {
-            return new ResponseEntity<>(service.addParticipant(idEvent, idUser), CREATED);
+            service.addParticipant(idEvent, idUser);
+            return new ResponseEntity<>(OK);
         } catch (EventNotPublishedException _) {
             return new ResponseEntity<>(NOT_ACCEPTABLE);
         } catch (Exception _) {
@@ -181,7 +182,7 @@ public class EventController {
      * @return The event object saved
      */
     @RolesAllowed({"ORGANIZER", "ADMIN"})
-    @PutMapping("/event/{idEvent}/delete")
+    @DeleteMapping("/event/{idEvent}")
     public ResponseEntity<Void> delete(@PathVariable final Long idEvent) {
         try {
             service.changeState(idEvent, EventState.DELETED);

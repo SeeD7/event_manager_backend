@@ -21,13 +21,14 @@ VALUES
     ('Perso', '', '2026-06-01 10:00:00', '2026-06-01 10:00:00', 1, 2);
 
 -- 3. EVENTS (On force les IDs de 1 à 5 et on nettoie les dates)
-INSERT INTO em_events (name, description, state, all_day, start_date, end_date)
+INSERT INTO em_events (name, description, state, all_day, start_date, end_date, creator, created_date, spots_available)
 VALUES
-    ('Lancement de l''Event-Manager', 'Grande réunion de lancement avec toute l''équipe au grand complet.', 'PUBLISHED', false, '2026-06-20 10:00:00', '2026-06-20 12:30:00'),
-    ('Entraînement de Parkour & Acrobaties', 'Session intensive de sauts et de Street Workout au parc.', 'PUBLISHED', false, '2026-06-21 18:00:00', '2026-06-21 20:00:00'),
-    ('Foire Médiévale et Reconstitution Viking', 'Journée complète d''immersion historique, combats et artisanat.', 'DRAFT', true, '2026-06-24 00:00:00', '2026-06-24 23:59:59'),
-    ('Concert Privé - Electric Callboy', 'Session d''écoute exclusive et balances avant le show.', 'PUBLISHED', false, '2026-06-26 19:30:00', '2026-06-26 23:00:00'),
-    ('Séance de papouilles & Câlin avec ma chérie', 'Session obligatoire de détente avec les minets, Baphomette, et un gros câlin pour recharger les batteries.', 'DELETED', false, '2026-06-18 18:30:00', '2026-06-18 23:00:00');
+    ('Lancement de l''Event-Manager', 'Grande réunion de lancement avec toute l''équipe au grand complet.', 'PUBLISHED', false, '2026-06-20 10:00:00', '2026-06-20 12:30:00', 1, '2026-06-19 10:00:00', 0),
+    ('Entraînement de Parkour & Acrobaties', 'Session intensive de sauts et de Street Workout au parc.', 'PUBLISHED', false, '2026-06-21 18:00:00', '2026-06-21 20:00:00', 1, '2026-06-19 10:00:00', 1),
+    ('Foire Médiévale et Reconstitution Viking', 'Journée complète d''immersion historique, combats et artisanat.', 'PUBLISHED', true, '2026-06-24 00:00:00', '2026-06-24 23:59:59', 2, '2026-06-19 10:00:00', 1),
+    ('Concert Privé - Electric Callboy', 'Session d''écoute exclusive et balances avant le show.', 'DRAFT', false, '2026-06-26 19:30:00', '2026-06-26 23:00:00', 2, '2026-06-19 10:00:00', 1),
+    ('Séance de papouilles & Câlin avec ma chérie', 'Session obligatoire de détente avec les minets, Baphomette, et un gros câlin pour recharger les batteries.', 'DELETED', false, '2026-06-18 18:30:00', '2026-06-18 23:00:00', 4, '2026-06-19 10:00:00', 0),
+    ('Concert spectacle Elden Rin et Warcraft', 'De la musique épique !.', 'PUBLISHED', true, '2026-06-24 00:00:00', '2026-06-24 23:59:59', 2, '2026-06-19 10:00:00', 1);
 
 -- 4. JOINTURES (Maintenant les IDs matchent à 100%)
 INSERT INTO em_event_category_join (event_id, event_category_id)

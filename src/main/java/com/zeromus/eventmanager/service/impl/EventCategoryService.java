@@ -1,6 +1,7 @@
 package com.zeromus.eventmanager.service.impl;
 
 import com.zeromus.eventmanager.model.dto.EventCategoryDto;
+import com.zeromus.eventmanager.model.dto.EventCategoryLightDto;
 import com.zeromus.eventmanager.model.entity.EventCategory;
 import com.zeromus.eventmanager.model.entity.User;
 import com.zeromus.eventmanager.model.mapper.EventCategoryMapper;
@@ -13,16 +14,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
-
-import static java.util.stream.Collectors.toList;
 
 @Service("eventCategoryService")
 @Transactional
 public class EventCategoryService implements IEventCategoryService {
 
+    public static final String EVENT_CATEGORY_NOT_FOUND_WITH_ID = "EventCategory not found with ID: ";
     private final EventCategoryRepository repository;
     private final EventCategoryMapper mapper;
     private final UserService userService;
@@ -37,7 +38,13 @@ public class EventCategoryService implements IEventCategoryService {
     public EventCategoryDto getEventCategoryById(Long id) {
         Optional<EventCategory> eventCategory = repository.findById(id);
         return eventCategory.map(mapper::toDto)
-                .orElseThrow(() -> new EntityNotFoundException("EventCategory not found with ID: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(EVENT_CATEGORY_NOT_FOUND_WITH_ID + id));
+    }
+
+    @Override
+    public EventCategory getEventCategoryEntityById(Long id) {
+        Optional<EventCategory> eventCategory = repository.findById(id);
+        return eventCategory.orElseThrow(() -> new EntityNotFoundException(EVENT_CATEGORY_NOT_FOUND_WITH_ID + id));
     }
 
     @Override
@@ -45,8 +52,8 @@ public class EventCategoryService implements IEventCategoryService {
         return repository.findByName(name).map(mapper::toDto);
     }
 
-    public List<EventCategoryDto> getAll() {
-        return StreamSupport.stream(repository.findAll().spliterator(), false).map(mapper::toDto).collect(toList());
+    public List<EventCategoryLightDto> getAll() {
+        return StreamSupport.stream(repository.findAll().spliterator(), false).map(mapper::toLightDto).toList();
     }
 
     public Page<EventCategoryDto> getAllEventCategoryPaged(Pageable pageable) {
@@ -57,7 +64,7 @@ public class EventCategoryService implements IEventCategoryService {
         User user = userService.getUserEntityByUsername(newDto.getCreator());
         EventCategory entity = mapper.toEntity(newDto);
         entity.setCreator(user);
-        entity.setCreatedDate(OffsetDateTime.now());
+        entity.setCreatedDate(OffsetDateTime.now(ZoneId.systemDefault()));
         return mapper.toDto(repository.save(entity));
     }
 
@@ -66,11 +73,11 @@ public class EventCategoryService implements IEventCategoryService {
         return optEvent.map(event -> {
             User user = userService.getUserEntityByUsername(updatedDto.getLastUpdater());
             event.setLastUpdater(user);
-            event.setLastUpdatedDate(OffsetDateTime.now());
+            event.setLastUpdatedDate(OffsetDateTime.now(ZoneId.systemDefault()));
             event.setName(updatedDto.getName());
             event.setIcon(updatedDto.getIcon());
             return mapper.toDto(repository.save(event));
-        }).orElseThrow(() -> new EntityNotFoundException("EventCategory not found with ID: " + id));
+        }).orElseThrow(() -> new EntityNotFoundException(EVENT_CATEGORY_NOT_FOUND_WITH_ID + id));
     }
 
     public void deleteEventCategory(Long id) {

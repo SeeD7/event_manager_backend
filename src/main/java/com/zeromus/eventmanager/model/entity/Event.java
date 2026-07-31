@@ -11,10 +11,11 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
-@EqualsAndHashCode(callSuper = true)
 @Data
 @Entity
 @NoArgsConstructor
@@ -32,6 +33,9 @@ public class Event extends History implements StartEndDateable {
 
     @Column
     private String description;
+
+    @Column
+    private String location;
 
     @ManyToMany
     @JoinTable(
@@ -61,7 +65,10 @@ public class Event extends History implements StartEndDateable {
             name = "em_participate",
             joinColumns = @JoinColumn(name = "event_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id"))
-    private List<User> participants;
+    private List<User> participants = new ArrayList<>();
+
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<EventWaitingList> waitingList = new ArrayList<>();
 
     public void addParticipant(User user) {
         participants.add(user);
@@ -69,5 +76,26 @@ public class Event extends History implements StartEndDateable {
 
     public void removeParticipant(User user) {
         participants.remove(user);
+    }
+
+    public void addInWaintingList(User user) {
+        waitingList.add(new EventWaitingList(this, user));
+    }
+
+    public void removeFromWaitingList(User user) {
+        waitingList.removeIf(x -> x.getEvent().equals(this) && x.getUser().equals(user));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        Event event = (Event) o;
+        return Objects.equals(id, event.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), id);
     }
 }

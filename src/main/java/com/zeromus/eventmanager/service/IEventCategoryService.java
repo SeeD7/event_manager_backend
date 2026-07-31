@@ -1,6 +1,8 @@
 package com.zeromus.eventmanager.service;
 
 import com.zeromus.eventmanager.model.dto.EventCategoryDto;
+import com.zeromus.eventmanager.model.dto.EventCategoryLightDto;
+import com.zeromus.eventmanager.model.entity.EventCategory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -12,9 +14,11 @@ public interface IEventCategoryService {
 
     EventCategoryDto getEventCategoryById(Long id);
 
+    EventCategory getEventCategoryEntityById(Long id);
+
     Optional<EventCategoryDto> getEventCategoryByName(String name);
 
-    List<EventCategoryDto> getAll();
+    List<EventCategoryLightDto> getAll();
 
     Page<EventCategoryDto> getAllEventCategoryPaged(Pageable pageable);
 

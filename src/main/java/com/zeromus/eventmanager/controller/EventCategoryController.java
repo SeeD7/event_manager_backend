@@ -1,6 +1,7 @@
 package com.zeromus.eventmanager.controller;
 
 import com.zeromus.eventmanager.model.dto.EventCategoryDto;
+import com.zeromus.eventmanager.model.dto.EventCategoryLightDto;
 import com.zeromus.eventmanager.service.IEventCategoryService;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Valid;
@@ -14,7 +15,7 @@ import java.util.List;
 import static org.springframework.http.HttpStatus.*;
 
 @RestController
-@CrossOrigin
+//@CrossOrigin
 @RequestMapping("event-category")
 public class EventCategoryController {
 
@@ -91,7 +92,7 @@ public class EventCategoryController {
      */
     @RolesAllowed({"USER", "ORGANIZER", "ADMIN"})
     @GetMapping
-    public ResponseEntity<List<EventCategoryDto>> getAllEventCategory() {
+    public ResponseEntity<List<EventCategoryLightDto>> getAllEventCategory() {
         try {
             return new ResponseEntity<>(service.getAll(), OK);
         } catch (Exception _) {
@@ -118,14 +119,14 @@ public class EventCategoryController {
      * Update - Update an existing EventCategory
      *
      * @param id            - The id of the EventCategory to update
-     * @param EventCategory - The EventCategory object updated
+     * @param eventCategory - The EventCategory object updated
      * @return the updated EventCategory
      */
     @RolesAllowed({"ORGANIZER", "ADMIN"})
     @PutMapping("/{id}")
-    public ResponseEntity<EventCategoryDto> updateEventCategory(@PathVariable final Long id, @RequestBody EventCategoryDto EventCategory) {
+    public ResponseEntity<EventCategoryDto> updateEventCategory(@PathVariable final Long id, @RequestBody EventCategoryDto eventCategory) {
         try {
-            return new ResponseEntity<>(service.updateEventCategory(id, EventCategory), OK);
+            return new ResponseEntity<>(service.updateEventCategory(id, eventCategory), OK);
         } catch (Exception _) {
             return new ResponseEntity<>(BAD_REQUEST);
         }

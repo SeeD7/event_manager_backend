@@ -29,7 +29,7 @@ public class SearchEvent implements Specification<Event> {
     private String name;
     private String description;
     private Set<Long> categories;
-    private Set<EventState> states;
+    private Set<EventState> state;
     private OffsetDateTime startDate;
     private OffsetDateTime endDate;
 
@@ -58,13 +58,12 @@ public class SearchEvent implements Specification<Event> {
         if (Objects.nonNull(categories) && !categories.isEmpty()) {
             Join<Event, EventCategory> categoryJoin = root.join(Event_.CATEGORY);
 
-            // 2. On applique un simple .in() sur l'ID de la catégorie jointe !
             finalPredicate = cb.and(categoryJoin.get(EventCategory_.ID).in(categories), finalPredicate);
         }
 
-        if (Objects.nonNull(states) && !states.isEmpty()) {
+        if (Objects.nonNull(state) && !state.isEmpty()) {
             final List<Predicate> statePredicates = new ArrayList<>();
-            for (EventState sta : states) {
+            for (EventState sta : state) {
                 statePredicates.add(cb.like(root.get(Event_.STATE), sta.toString()));
             }
             finalPredicate = cb.and(cb.or(statePredicates.toArray(Predicate[]::new)), finalPredicate);

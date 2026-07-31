@@ -2,6 +2,7 @@ package com.zeromus.eventmanager.service;
 
 import com.zeromus.eventmanager.model.dto.SecuredUserDto;
 import com.zeromus.eventmanager.model.dto.UserDto;
+import com.zeromus.eventmanager.model.entity.User;
 import com.zeromus.eventmanager.model.enums.UserRole;
 import com.zeromus.eventmanager.model.search.SearchUser;
 import org.springframework.data.domain.Page;
@@ -13,6 +14,8 @@ public interface IUserService extends UserDetailsService {
     UserDto getUserById(Long id);
 
     UserDto getUserByUsername(String username);
+
+    User getUserEntityByUsername(String username);
 
     UserDto getUserByEmail(String email);
 

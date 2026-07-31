@@ -1,21 +1,20 @@
 package com.zeromus.eventmanager.model.dto;
 
-import com.zeromus.eventmanager.model.entity.EventCategory;
 import com.zeromus.eventmanager.model.enums.EventState;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
-import lombok.experimental.SuperBuilder;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.Set;
 
-@EqualsAndHashCode(callSuper = true)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@SuperBuilder
-public class EventDto extends HistoryDto {
+@Builder
+public class EventFormDto {
     private Long id;
 
     @NotNull
@@ -25,8 +24,7 @@ public class EventDto extends HistoryDto {
 
     private String location;
 
-    @NotNull
-    private Set<EventCategory> category;
+    private Set<EventCategoryLightDto> category;
 
     private EventState state;
 
@@ -35,12 +33,7 @@ public class EventDto extends HistoryDto {
     @NotNull
     private OffsetDateTime startDate;
 
-    @NotNull
     private OffsetDateTime endDate;
 
     private Long spotsAvailable;
-
-    private List<UserDto> participants;
-
-    private List<UserDto> waitingList;
 }

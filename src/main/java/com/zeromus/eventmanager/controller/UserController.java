@@ -18,7 +18,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.springframework.http.HttpStatus.*;
 
 @RestController
-@CrossOrigin
+//@CrossOrigin
 public class UserController {
 
     private final IUserService userService;

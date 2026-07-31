@@ -2,15 +2,17 @@ package com.zeromus.eventmanager.service;
 
 import com.zeromus.eventmanager.exceptions.EventNotPublishedException;
 import com.zeromus.eventmanager.model.dto.EventDto;
+import com.zeromus.eventmanager.model.dto.EventFormDto;
 import com.zeromus.eventmanager.model.entity.Event;
 import com.zeromus.eventmanager.model.enums.EventState;
 import com.zeromus.eventmanager.model.mapper.EventMapper;
+import com.zeromus.eventmanager.model.mapper.UserMapper;
 import com.zeromus.eventmanager.model.search.SearchEvent;
 import com.zeromus.eventmanager.repository.EventRepository;
+import com.zeromus.eventmanager.service.impl.EventCategoryService;
 import com.zeromus.eventmanager.service.impl.EventService;
 import com.zeromus.eventmanager.service.impl.UserService;
 import com.zeromus.eventmanager.utils.AssertionUtils;
-import com.zeromus.eventmanager.utils.EventUtils;
 import jakarta.persistence.EntityNotFoundException;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -22,12 +24,15 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Collections;
 import java.util.Optional;
 
-import static com.zeromus.eventmanager.utils.EventUtils.createValidTestEvent;
-import static com.zeromus.eventmanager.utils.EventUtils.createValidTestEventDto;
+import static com.zeromus.eventmanager.utils.EventUtils.*;
+import static com.zeromus.eventmanager.utils.EventUtils.createValidTestEventFormDto;
 import static com.zeromus.eventmanager.utils.UserUtils.USER_DTO;
 import static com.zeromus.eventmanager.utils.UserUtils.USER_ENTITY;
 import static org.junit.jupiter.api.Assertions.*;
@@ -49,6 +54,12 @@ class EventServiceTest {
     private EventMapper mapper;
     @Mock
     private UserService userService;
+    @Mock
+    private UserMapper userMapper;
+    @Mock
+    private EventCategoryService eventCategoryService;
+    @Mock
+    private Authentication auth;
     @InjectMocks
     private EventService service;
 
@@ -69,22 +80,6 @@ class EventServiceTest {
     }
 
     @Test
-    void getEventByEventName_WhenEventNameIsOk_ShouldReturnEvent() {
-        when(repository.findByName(EventUtils.NAME)).thenReturn(Optional.of(entity));
-        when(mapper.toDto(entity)).thenReturn(expectedDto);
-        EventDto result = service.getEventByEventName(EventUtils.NAME);
-        Assertions.assertThat(result).isEqualTo(expectedDto);
-    }
-
-    @Test
-    void getEventByEventName_WhenEventNameIsUnknown_ShouldReturnException() {
-        when(repository.findByName(EventUtils.NAME)).thenReturn(Optional.empty());
-        Exception ex = assertThrows(EntityNotFoundException.class, () -> service.getEventByEventName(EventUtils.NAME));
-
-        AssertionUtils.assertExceptionMessageContains(ex, "Event not found with name: " + EventUtils.NAME);
-    }
-
-    @Test
     void getAllEventsSearched_ShouldCallRepository() {
         when(repository.findAll(search)).thenReturn(Collections.singletonList(entity));
         when(mapper.toDto(entity)).thenReturn(expectedDto);
@@ -102,7 +97,9 @@ class EventServiceTest {
 
     @Test
     void addEvent_ShouldReturnEventAndCallRepository() {
-        EventDto newDto = createValidTestEventDto();
+        setUpAuthenticationMock();
+
+        EventFormDto newDto = createValidTestEventFormDto();
         newDto.setId(null);
         newDto.setName("Un petit nom");
         when(mapper.toEntity(newDto)).thenReturn(entity);
@@ -111,47 +108,77 @@ class EventServiceTest {
         EventDto result = service.addEvent(newDto);
         Assertions.assertThat(result).isEqualTo(expectedDto);
         verify(repository, times(1)).save(any());
+
+        SecurityContextHolder.clearContext();
     }
 
     @Test
     void updateEvent_WhenIdIsOk_ShouldReturnUpdatedDtoAndCallRepository() {
-        EventDto updatedDto = createValidTestEventDto();
+        setUpAuthenticationMock();
+
+        // Instance isolée, aucune pollution du test précédent !
+        Event localEntity = createValidTestEvent();
+        EventDto localExpectedDto = createValidTestEventDto();
+        EventFormDto updatedDto = createValidTestEventFormDto();
         updatedDto.setName("Un petit nom");
+
+        when(repository.findById(1L)).thenReturn(Optional.of(localEntity));
+        when(repository.save(any())).thenReturn(localEntity); // Requis par ton mapper.toDto(repository.save)
+        when(eventCategoryService.getEventCategoryEntityById(any())).thenReturn(CATEGORY_PERSO);
+        when(mapper.toDto(any())).thenReturn(localExpectedDto); // Requis pour le return du service
+
         service.updateEvent(updatedDto);
         verify(repository, times(1)).save(any());
+
+        SecurityContextHolder.clearContext();
     }
 
     @Test
     void updateEvent_WhenIdIsOkAndNothingChanged_ShouldReturnUpdatedDtoAndCallRepository() {
-        service.updateEvent(expectedDto);
+        setUpAuthenticationMock();
+
+        Event localEntity = createValidTestEvent();
+        EventDto localExpectedDto = createValidTestEventDto();
+        EventFormDto updatedDto = createValidTestEventFormDto();
+
+        when(repository.findById(any())).thenReturn(Optional.of(localEntity));
+        when(repository.save(any())).thenReturn(localEntity);
+        when(eventCategoryService.getEventCategoryEntityById(any())).thenReturn(CATEGORY_PERSO);
+        when(mapper.toDto(any())).thenReturn(localExpectedDto);
+
+        service.updateEvent(updatedDto);
         verify(repository, times(1)).save(any());
+
+        SecurityContextHolder.clearContext();
     }
 
     @Test
     void participateEvent_WhenNoSpotAvailableDefined_ShouldCallRepository() throws EventNotPublishedException {
         when(userService.getUserById(1L)).thenReturn(USER_DTO);
+        when(userMapper.toEntity(USER_DTO)).thenReturn(USER_ENTITY);
+        entity.setSpotsAvailable(null);
         when(repository.findById(1L)).thenReturn(Optional.of(entity));
-        boolean result = service.addParticipant(1L,1L);
+        service.addParticipant(1L,1L);
         verify(repository, times(1)).save(any());
-        assertTrue(result);
     }
 
     @Test
     void participateEvent_WhenSpotAvailable_ShouldCallRepository() throws EventNotPublishedException {
         when(userService.getUserById(1L)).thenReturn(USER_DTO);
+        when(userMapper.toEntity(USER_DTO)).thenReturn(USER_ENTITY);
         when(repository.findById(1L)).thenReturn(Optional.of(entity));
-        boolean result = service.addParticipant(1L,1L);
+        service.addParticipant(1L,1L);
         verify(repository, times(1)).save(any());
-        assertTrue(result);
     }
 
     @Test
     void participateEvent_WhenNoSpotAvailable_ShouldCallRepository() throws EventNotPublishedException {
+        when(userService.getUserById(1L)).thenReturn(USER_DTO);
+        when(userMapper.toEntity(USER_DTO)).thenReturn(USER_ENTITY);
         when(repository.findById(1L)).thenReturn(Optional.of(entity));
         entity.addParticipant(USER_ENTITY);
-        boolean result = service.addParticipant(1L,1L);
-        verify(repository, times(0)).save(any());
-        assertFalse(result);
+        service.addParticipant(1L,1L);
+        verify(repository, times(1)).save(any());
     }
 
     @Test
@@ -174,6 +201,7 @@ class EventServiceTest {
     @Test
     void cancelEvent_ShouldCallRepository() {
         when(userService.getUserById(1L)).thenReturn(USER_DTO);
+        when(userMapper.toEntity(USER_DTO)).thenReturn(USER_ENTITY);
         when(repository.findById(1L)).thenReturn(Optional.of(entity));
         service.removeParticipant(1L, 1L);
         verify(repository, times(1)).save(any());
@@ -206,5 +234,11 @@ class EventServiceTest {
 
             AssertionUtils.assertExceptionMessageContains(ex, "Event not found with ID: " + 1L);
         }
+    }
+
+    private void setUpAuthenticationMock() {
+        SecurityContext securityContext = org.mockito.Mockito.mock(SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(auth);
+        SecurityContextHolder.setContext(securityContext);
     }
 }

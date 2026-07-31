@@ -1,6 +1,8 @@
 package com.zeromus.eventmanager.service;
 
+import com.zeromus.eventmanager.exceptions.EventNotPublishedException;
 import com.zeromus.eventmanager.model.dto.EventDto;
+import com.zeromus.eventmanager.model.dto.EventFormDto;
 import com.zeromus.eventmanager.model.enums.EventState;
 import com.zeromus.eventmanager.model.search.SearchEvent;
 import com.zeromus.eventmanager.utils.AssertionUtils;
@@ -16,12 +18,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.TransactionSystemException;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -29,11 +31,10 @@ import java.util.logging.Logger;
 
 import static com.zeromus.eventmanager.model.enums.EventState.DELETED;
 import static com.zeromus.eventmanager.model.enums.EventState.DRAFT;
-import static com.zeromus.eventmanager.utils.EventUtils.CATEGORY_PERSO;
-import static com.zeromus.eventmanager.utils.EventUtils.createValidTestEventDto;
+import static com.zeromus.eventmanager.utils.EventUtils.*;
 import static java.time.OffsetDateTime.parse;
 import static java.util.Collections.singleton;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -60,7 +61,7 @@ class EventServiceTestIT {
     void getAllEvents_WhenSearchedEmpty_ShouldReturnEventsPaged() {
         Pageable pageable = PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "id"));
         Page<EventDto> result = service.getAllEventsPaged(new SearchEvent(), pageable);
-        Assertions.assertThat(result.getTotalElements()).isEqualTo(5);
+        Assertions.assertThat(result.getTotalElements()).isEqualTo(6);
         Assertions.assertThat(result.getNumberOfElements()).isEqualTo(1);
     }
 
@@ -84,7 +85,7 @@ class EventServiceTestIT {
 
     @Test
     void getAllEvents_WhenSearchedByState_ShouldReturnEventsPaged() {
-        SearchEvent search = SearchEvent.builder().states(singleton(DRAFT)).build();
+        SearchEvent search = SearchEvent.builder().state(singleton(DRAFT)).build();
         Pageable pageable = PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "id"));
         Page<EventDto> result = service.getAllEventsPaged(search, pageable);
         Assertions.assertThat(result.getTotalElements()).isEqualTo(1);
@@ -93,7 +94,7 @@ class EventServiceTestIT {
 
     @Test
     void getAllEvents_WhenSearchedByMultipleState_ShouldReturnEventsPaged() {
-        SearchEvent search = SearchEvent.builder().states(new HashSet<>(Arrays.asList(DRAFT, DELETED))).build();
+        SearchEvent search = SearchEvent.builder().state(new HashSet<>(Arrays.asList(DRAFT, DELETED))).build();
         Pageable pageable = PageRequest.of(1, 1, Sort.by(Sort.Direction.ASC, "id"));
         Page<EventDto> result = service.getAllEventsPaged(search, pageable);
         Assertions.assertThat(result.getTotalElements()).isEqualTo(2);
@@ -118,12 +119,13 @@ class EventServiceTestIT {
         Assertions.assertThat(result.getNumberOfElements()).isEqualTo(2);
     }
 
+    @WithMockUser(username = "Lulu", roles = {"ADMIN"})
     @Test
     void createEvent_WhenEndDateBeforeStartDate_ShouldReturnException() {
-        EventDto newDto = EventDto.builder().id(null).name("Test").description("Test").location("")
-                .category(Set.of(CATEGORY_PERSO)).state(EventState.PUBLISHED).allDay(false)
+        EventFormDto newDto = EventFormDto.builder().id(null).name("Test").description("Test").location("")
+                .category(Set.of(CATEGORY_PERSO_LIGHT)).state(EventState.PUBLISHED).allDay(false)
                 .startDate(parse("2026-06-17T18:30:00+02:00"))
-                .endDate(parse("2026-06-16T20:00:00+02:00")).spotsAvailable(1L).participants(new ArrayList<>())
+                .endDate(parse("2026-06-16T20:00:00+02:00")).spotsAvailable(1L)
                 .build();
 
         Exception ex = assertThrows(ConstraintViolationException.class, () -> service.addEvent(newDto));
@@ -132,9 +134,10 @@ class EventServiceTestIT {
 
     }
 
+    @WithMockUser(username = "Lulu", roles = {"ADMIN"})
     @Test
     void updateEvent_WhenEndDateBeforeStartDate_ShouldReturnException() {
-        EventDto updateDto = createValidTestEventDto();
+        EventFormDto updateDto = createValidTestEventFormDto();
         updateDto.setEndDate(parse("2026-06-16T20:00:00+02:00"));
 
         TransactionSystemException ex = assertThrows(TransactionSystemException.class, () -> service.updateEvent(updateDto)
@@ -146,5 +149,40 @@ class EventServiceTestIT {
         Assertions.assertThat(rootCause).isInstanceOf(ConstraintViolationException.class);
         assert rootCause != null;
         Assertions.assertThat(rootCause.getMessage()).contains("La date de début doit être antérieure à la date de fin.");
+    }
+
+    @Test
+    void participateEvent_WhenNoSpotAvailableDefined_ShouldHaveParticipant() throws EventNotPublishedException {
+        service.addParticipant(1L,1L);
+        EventDto result = service.getEventById(1L);
+        assertEquals(1, result.getParticipants().size());
+        assertEquals(0, result.getWaitingList().size());
+    }
+
+    @Test
+    void participateEvent_WhenSpotAvailable_ShouldHaveParticipant() throws EventNotPublishedException {
+        service.addParticipant(2L,1L);
+        EventDto result = service.getEventById(2L);
+        assertEquals(1, result.getParticipants().size());
+        assertEquals(0, result.getWaitingList().size());
+    }
+
+    @Test
+    void participateEvent_WhenNoSpotAvailable_ShouldHaveInWaitinglist() throws EventNotPublishedException {
+        service.addParticipant(3L,1L);
+        service.addParticipant(3L,2L);
+        EventDto result = service.getEventById(3L);
+        assertEquals(1, result.getParticipants().size());
+        assertEquals(1, result.getWaitingList().size());
+    }
+
+    @Test
+    void removeParticipantEvent_WhenSpotAvailableDefined_ShouldMoveToParticipant() throws EventNotPublishedException {
+        service.addParticipant(6L,1L);
+        service.addParticipant(6L,2L);
+        service.removeParticipant(6L,1L);
+        EventDto result = service.getEventById(6L);
+        assertEquals(1, result.getParticipants().size());
+        assertEquals(0, result.getWaitingList().size());
     }
 }

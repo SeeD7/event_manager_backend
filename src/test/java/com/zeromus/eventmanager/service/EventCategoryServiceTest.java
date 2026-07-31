@@ -51,6 +51,21 @@ class EventCategoryServiceTest {
     }
 
     @Test
+    void getEventCategoryByName_WhenNameIsUnknown_ShouldReturnException() {
+        when(repository.findByName("Sports")).thenReturn(Optional.empty());
+        Optional<EventCategoryDto> result = service.getEventCategoryByName("Sports");
+        Assertions.assertThat(result).isNotPresent();
+    }
+
+    @Test
+    void getEventCategoryByName_WhenNameIsOk_ShouldReturnEventCategory() {
+        when(repository.findByName("Sports")).thenReturn(Optional.of(entity));
+        when(eventCategoryMapper.toDto(entity)).thenReturn(expectedDto);
+        Optional<EventCategoryDto> result = service.getEventCategoryByName("Sports");
+        Assertions.assertThat(result).isEqualTo(Optional.of(expectedDto));
+    }
+
+    @Test
     void getEventCategoryById_WhenIdIsUnknown_ShouldReturnException() {
         when(repository.findById(2L)).thenReturn(Optional.empty());
         Exception ex = assertThrows(EntityNotFoundException.class, () -> service.getEventCategoryById(2L));
@@ -61,7 +76,6 @@ class EventCategoryServiceTest {
     @Test
     void getAllEventCategory_ShouldCallRepository() {
         when(repository.findAll()).thenReturn(new PageImpl<>(Collections.singletonList(entity)));
-        when(eventCategoryMapper.toDto(entity)).thenReturn(expectedDto);
         service.getAll();
         verify(repository, times(1)).findAll();
     }
