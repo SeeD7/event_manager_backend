@@ -1,10 +1,13 @@
 package com.zeromus.eventmanager.service.impl;
 
 import com.zeromus.eventmanager.exceptions.EventNotPublishedException;
+import com.zeromus.eventmanager.model.dto.EventCardDto;
 import com.zeromus.eventmanager.model.dto.EventDto;
 import com.zeromus.eventmanager.model.dto.EventFormDto;
+import com.zeromus.eventmanager.model.dto.UserDto;
 import com.zeromus.eventmanager.model.entity.Event;
 import com.zeromus.eventmanager.model.entity.EventCategory;
+import com.zeromus.eventmanager.model.entity.EventWaitingList;
 import com.zeromus.eventmanager.model.entity.User;
 import com.zeromus.eventmanager.model.enums.EventState;
 import com.zeromus.eventmanager.model.mapper.EventMapper;
@@ -25,11 +28,12 @@ import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.zeromus.eventmanager.model.enums.EventState.PUBLISHED;
+import static java.util.Collections.singletonList;
 
 @Service("eventService")
 @Transactional
@@ -51,8 +55,12 @@ public class EventService implements IEventService {
 
     public EventDto getEventById(Long id) {
         Optional<Event> event = repository.findById(id);
-        return event.map(mapper::toDto)
+        EventDto dto = event.map(mapper::toDto)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found with ID: " + id));
+        UserDto currentUser = userMapper.toDto(getCurrentAuthenticatedUser());
+        dto.setIsCurrentUserRegistered(dto.getParticipants().contains(currentUser));
+        dto.setIsCurrentUserInWaitingList(dto.getWaitingList().contains(currentUser));
+        return dto;
     }
 
     public List<EventDto> getAllEventsSearched(SearchEvent search) {
@@ -63,16 +71,28 @@ public class EventService implements IEventService {
         return repository.findAll(search, pageable).map(mapper::toDto);
     }
 
+    public List<EventCardDto> getAllEventsList(int type, OffsetDateTime date) {
+        OffsetDateTime startDate = date.truncatedTo(ChronoUnit.DAYS);
+        OffsetDateTime endDate;
+
+        switch (type) {
+            case 2 -> {
+                startDate = startDate.withDayOfMonth(1);
+                endDate = startDate.plusMonths(1);
+            }
+            case 3 -> {
+                startDate = startDate.withDayOfMonth(1).withMonth(1);
+                endDate = startDate.plusYears(1);
+            }
+            default ->  endDate = startDate.plusDays(1);
+        }
+        return repository.findByStateInAndStartDateBetweenOrderByStartDate(singletonList(PUBLISHED), startDate, endDate)
+                .stream().map(mapper::toCardDto).toList();
+    }
+
     public EventDto addEvent(EventFormDto newDto) {
         Event newEvent = mapper.toEntity(newDto);
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (!(authentication instanceof AnonymousAuthenticationToken)) {
-            assert authentication != null;
-            User authenticatedUser = userService.getUserEntityByUsername(authentication.getName());
-            newEvent.setLastUpdater(authenticatedUser);
-        } else {
-            throw new AuthenticationServiceException("User not authenticated");
-        }
+        newEvent.setLastUpdater(getCurrentAuthenticatedUser());
         newEvent.setState(EventState.DRAFT);
         newEvent.setCreatedDate(OffsetDateTime.now(ZoneId.systemDefault()));
         return mapper.toDto(repository.save(newEvent));
@@ -82,14 +102,7 @@ public class EventService implements IEventService {
         Optional<Event> eventToUpdate = repository.findById(updateDto.getId());
 
         return eventToUpdate.map(event -> {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (!(authentication instanceof AnonymousAuthenticationToken)) {
-                assert authentication != null;
-                User authenticatedUser = userService.getUserEntityByUsername(authentication.getName());
-                event.setLastUpdater(authenticatedUser);
-            } else {
-                throw new AuthenticationServiceException("User not authenticated");
-            }
+            event.setLastUpdater(getCurrentAuthenticatedUser());
             event.setLastUpdatedDate(OffsetDateTime.now(ZoneId.systemDefault()));
             event.setName(updateDto.getName());
             event.setDescription(updateDto.getDescription());
@@ -105,14 +118,16 @@ public class EventService implements IEventService {
         }).orElseThrow(() -> new EntityNotFoundException("Event not found with ID: " + updateDto.getId()));
     }
 
+    @Transactional
     public void addParticipant(Long idEvent, Long idUser) throws EventNotPublishedException {
         Optional<Event> optEvent = repository.findById(idEvent);
         if (optEvent.isPresent()) {
             Event event = optEvent.get();
-            if(!event.getState().equals(EventState.PUBLISHED)){
+            if(!event.getState().equals(PUBLISHED)){
                 throw new EventNotPublishedException();
             }
-            User user = userMapper.toEntity(userService.getUserById(idUser));
+
+            User user = userService.getUserEntityById(idUser);
             if(!Objects.isNull(event.getSpotsAvailable()) && event.getSpotsAvailable() > 0 && event.getParticipants().size() >= event.getSpotsAvailable()){
                 event.addInWaintingList(user);
             } else {
@@ -128,16 +143,30 @@ public class EventService implements IEventService {
         Optional<Event> optEvent = repository.findById(idEvent);
         if (optEvent.isPresent()) {
             Event event = optEvent.get();
-            User user = userMapper.toEntity(userService.getUserById(idUser));
-            event.removeParticipant(user);
-            if(event.getSpotsAvailable() > 0 && !event.getWaitingList().isEmpty()){
-                User next = repository.findNextUserInWaitingList(event.getId());
-                event.removeFromWaitingList(next);
-                event.addParticipant(next);
+            User user = userService.getUserEntityById(idUser);
+            if(event.getParticipants().contains(user)) {
+                event.removeParticipant(user);
+                if (event.getSpotsAvailable() > 0 && !event.getWaitingList().isEmpty()) {
+                    User next = repository.findNextUserInWaitingList(event.getId());
+                    event.removeFromWaitingList(next);
+                    event.addParticipant(next);
+                }
+            } else if (event.getWaitingList().stream().map(EventWaitingList::getUser).toList().contains(user)){
+                event.removeFromWaitingList(user);
             }
             repository.save(event);
         } else {
             throw new EntityNotFoundException("Event not found with ID: " + idEvent);
+        }
+    }
+
+    private User getCurrentAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (!(authentication instanceof AnonymousAuthenticationToken)) {
+            assert authentication != null;
+            return userService.getUserEntityByUsername(authentication.getName());
+        } else {
+            throw new AuthenticationServiceException("User not authenticated");
         }
     }
 

@@ -13,6 +13,8 @@ public interface IUserService extends UserDetailsService {
 
     UserDto getUserById(Long id);
 
+    User getUserEntityById(Long id);
+
     UserDto getUserByUsername(String username);
 
     User getUserEntityByUsername(String username);

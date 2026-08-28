@@ -63,12 +63,16 @@ class EventServiceTest {
     @InjectMocks
     private EventService service;
 
+
     @Test
     void getEventById_WhenIdIsOk_ShouldReturnEvent() {
+        setUpAuthenticationMock();
         when(repository.findById(1L)).thenReturn(Optional.of(entity));
         when(mapper.toDto(entity)).thenReturn(expectedDto);
         EventDto result = service.getEventById(1L);
         Assertions.assertThat(result).isEqualTo(expectedDto);
+
+        SecurityContextHolder.clearContext();
     }
 
     @Test

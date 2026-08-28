@@ -43,4 +43,8 @@ public class EventDto extends HistoryDto {
     private List<UserDto> participants;
 
     private List<UserDto> waitingList;
+
+    private Boolean isCurrentUserRegistered;
+
+    private Boolean isCurrentUserInWaitingList;
 }

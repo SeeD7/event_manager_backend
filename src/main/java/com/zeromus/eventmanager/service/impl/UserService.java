@@ -64,6 +64,11 @@ public class UserService implements UserDetailsService, IUserService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + id));
     }
 
+    public User getUserEntityById(Long id) {
+        Optional<User> user = userRepository.findById(id);
+        return user.orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + id));
+    }
+
     public UserDto getUserByUsername(String username) {
         Optional<User> user = userRepository.findByUsername(username);
         return user.map(userMapper::toDto)

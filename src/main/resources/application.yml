@@ -11,13 +11,13 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
-  jpa:
-    defer-datasource-initialization: true
-    hibernate: ddl-auto:create
-    properties:
-      hibernate:
-        format_sql: true
-    show-sql: true
+#  jpa:
+#    defer-datasource-initialization: true
+#    hibernate: ddl-auto:create
+#    properties:
+#      hibernate:
+#        format_sql: true
+#    show-sql: true
   sql:
     init:
       mode: always
@@ -27,25 +27,23 @@ server:
   port: 9000
   
   #Log level configuration
-logging:
-  level:
-    #root: ERROR
-    com:
-      openclassrooms: INFO
-    org:
-      springframework:
-        boot:
-          autoconfigure:
-            h2: INFO
-          web:
-            embedded:
-              tomcat: INFO
-    hibernate:
-      SQL: DEBUG
-      orm:
-        jdbc:
-          bind: TRACE
-    type:
-      descriptor:
-        sql:
-          BasicBinder: TRACE
+#logging:
+#  level:
+#    #root: ERROR
+#    org:
+#      springframework:
+#        boot:
+#          autoconfigure:
+#            h2: INFO
+#          web:
+#            embedded:
+#              tomcat: INFO
+#    hibernate:
+#      SQL: DEBUG
+#      orm:
+#        jdbc:
+#          bind: TRACE
+#    type:
+#      descriptor:
+#        sql:
+#          BasicBinder: TRACE

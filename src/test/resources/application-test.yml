@@ -22,5 +22,6 @@ spring:
 logging:
   level:
     org.hibernate.orm.jdbc.bind: TRACE
+    org.hibernate.hql.internal.ast.tree.ConstructorNode: DEBUG
     org.springframework.transaction: DEBUG
     org.springframework.jdbc.datasource.init: DEBUG

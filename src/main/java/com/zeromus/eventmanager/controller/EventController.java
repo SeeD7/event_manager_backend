@@ -1,6 +1,7 @@
 package com.zeromus.eventmanager.controller;
 
 import com.zeromus.eventmanager.exceptions.EventNotPublishedException;
+import com.zeromus.eventmanager.model.dto.EventCardDto;
 import com.zeromus.eventmanager.model.dto.EventDto;
 import com.zeromus.eventmanager.model.dto.EventFormDto;
 import com.zeromus.eventmanager.model.enums.EventState;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.*;
@@ -90,6 +92,21 @@ public class EventController {
     }
 
     /**
+     * Read - Get all events
+     *
+     * @return - An Iterable object of Event full filled
+     */
+    @RolesAllowed({"USER", "ORGANIZER", "ADMIN"})
+    @GetMapping("/events/list")
+    public ResponseEntity<List<EventCardDto>> getEventsList(int displayType, OffsetDateTime date) {
+        try {
+            return new ResponseEntity<>(service.getAllEventsList(displayType, date), OK);
+        } catch (Exception _) {
+            return new ResponseEntity<>(BAD_REQUEST);
+        }
+    }
+
+    /**
      * Update - Update an existing event
      *
      * @param event - The event object updated
@@ -113,7 +130,7 @@ public class EventController {
      * @return If there's enough spot available
      */
     @RolesAllowed({"USER", "ORGANIZER", "ADMIN"})
-    @PutMapping("/event/{idEvent}/{idUser}")
+    @PutMapping("/event/{idEvent}/participate/{idUser}")
     public ResponseEntity<Boolean> participate(@PathVariable final Long idEvent, @PathVariable final Long idUser) {
         try {
             service.addParticipant(idEvent, idUser);
@@ -133,7 +150,7 @@ public class EventController {
      * @return The event object saved
      */
     @RolesAllowed({"USER", "ORGANIZER", "ADMIN"})
-    @DeleteMapping("/event/{idEvent}/{idUser}")
+    @DeleteMapping("/event/{idEvent}/cancel/{idUser}")
     public ResponseEntity<Void> cancel(@PathVariable final Long idEvent, @PathVariable final Long idUser) {
         try {
             service.removeParticipant(idEvent, idUser);

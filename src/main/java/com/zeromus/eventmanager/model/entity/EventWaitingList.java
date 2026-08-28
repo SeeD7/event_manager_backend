@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import java.time.OffsetDateTime;
 
 @Data
-@EqualsAndHashCode
+@EqualsAndHashCode(of = {"event", "user"})
 @Entity
 @Table(name = "em_waiting_list")
 @IdClass(WaitingListId.class)
