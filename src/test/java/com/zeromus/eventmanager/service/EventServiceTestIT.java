@@ -32,12 +32,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import static com.zeromus.eventmanager.utils.EventUtils.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static com.zeromus.eventmanager.model.enums.EventState.DELETED;
 import static com.zeromus.eventmanager.model.enums.EventState.DRAFT;
-import static com.zeromus.eventmanager.utils.EventUtils.*;
 import static java.time.OffsetDateTime.parse;
 import static java.util.Collections.singleton;
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -61,6 +61,7 @@ class EventServiceTestIT {
     }
 
     @Test
+    @WithMockUser(username = "Lulu", roles = {"ADMIN"})
     void getAllEvents_WhenSearchedEmpty_ShouldReturnEventsPaged() {
         Pageable pageable = PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "id"));
         Page<EventDto> result = service.getAllEventsPaged(new SearchEvent(), pageable);
@@ -69,6 +70,7 @@ class EventServiceTestIT {
     }
 
     @Test
+    @WithMockUser(username = "Lulu", roles = {"ADMIN"})
     void getAllEvents_WhenSearchedByCategory_ShouldReturnEventsPaged() {
         SearchEvent search = SearchEvent.builder().categories(singleton(CAT_SPORT)).build();
         Pageable pageable = PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "id"));
@@ -78,6 +80,7 @@ class EventServiceTestIT {
     }
 
     @Test
+    @WithMockUser(username = "Lulu", roles = {"ADMIN"})
     void getAllEvents_WhenSearchedByMultipleCategory_ShouldReturnEventsPaged() {
         SearchEvent search = SearchEvent.builder().categories(new HashSet<>(Arrays.asList(CAT_SPORT, CAT_PERSO))).build();
         Pageable pageable = PageRequest.of(0, 2, Sort.by(Sort.Direction.ASC, "id"));
@@ -87,6 +90,7 @@ class EventServiceTestIT {
     }
 
     @Test
+    @WithMockUser(username = "Lulu", roles = {"ADMIN"})
     void getAllEvents_WhenSearchedByState_ShouldReturnEventsPaged() {
         SearchEvent search = SearchEvent.builder().state(singleton(DRAFT)).build();
         Pageable pageable = PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "id"));
@@ -96,6 +100,7 @@ class EventServiceTestIT {
     }
 
     @Test
+    @WithMockUser(username = "Lulu", roles = {"ADMIN"})
     void getAllEvents_WhenSearchedByMultipleState_ShouldReturnEventsPaged() {
         SearchEvent search = SearchEvent.builder().state(new HashSet<>(Arrays.asList(DRAFT, DELETED))).build();
         Pageable pageable = PageRequest.of(1, 1, Sort.by(Sort.Direction.ASC, "id"));
@@ -105,6 +110,7 @@ class EventServiceTestIT {
     }
 
     @Test
+    @WithMockUser(username = "Lulu", roles = {"ADMIN"})
     void getAllEvents_WhenSearchedByRoleAndName_ShouldReturnEventsPaged() {
         SearchEvent search = SearchEvent.builder().categories(singleton(CAT_PERSO)).name("Event").build();
         Pageable pageable = PageRequest.of(0, 2, Sort.by(Sort.Direction.ASC, "id"));
@@ -135,6 +141,7 @@ class EventServiceTestIT {
     }
 
     @Test
+    @WithMockUser(username = "Lulu", roles = {"ADMIN"})
     void getAllEvents_WhenSearchedByNameAndDescription_ShouldReturnEventsPaged() {
         SearchEvent search = SearchEvent.builder().description("immersion").name("Event").build();
         Pageable pageable = PageRequest.of(0, 2, Sort.by(Sort.Direction.ASC, "id"));

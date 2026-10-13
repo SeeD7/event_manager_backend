@@ -1,17 +1,17 @@
 package com.zeromus.eventmanager.service.impl;
 
+
+import java.util.*;
 import com.zeromus.eventmanager.exceptions.EventNotPublishedException;
 import com.zeromus.eventmanager.model.dto.EventCardDto;
 import com.zeromus.eventmanager.model.dto.EventDto;
 import com.zeromus.eventmanager.model.dto.EventFormDto;
-import com.zeromus.eventmanager.model.dto.UserDto;
 import com.zeromus.eventmanager.model.entity.Event;
 import com.zeromus.eventmanager.model.entity.EventCategory;
 import com.zeromus.eventmanager.model.entity.EventWaitingList;
 import com.zeromus.eventmanager.model.entity.User;
 import com.zeromus.eventmanager.model.enums.EventState;
 import com.zeromus.eventmanager.model.mapper.EventMapper;
-import com.zeromus.eventmanager.model.mapper.UserMapper;
 import com.zeromus.eventmanager.model.search.SearchEvent;
 import com.zeromus.eventmanager.repository.EventRepository;
 import com.zeromus.eventmanager.service.IEventService;
@@ -29,7 +29,6 @@ import org.springframework.stereotype.Service;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.zeromus.eventmanager.model.enums.EventState.PUBLISHED;
@@ -42,33 +41,28 @@ public class EventService implements IEventService {
     private final EventRepository repository;
     private final EventMapper mapper;
     private final IUserService userService;
-    private final UserMapper userMapper;
     private final EventCategoryService eventCategoryService;
 
-    public EventService(final EventRepository repository, final EventMapper mapper, final IUserService userService, final UserMapper userMapper, final EventCategoryService eventCategoryService) {
+    public EventService(final EventRepository repository, final EventMapper mapper, final IUserService userService, final EventCategoryService eventCategoryService) {
         this.repository = repository;
         this.mapper = mapper;
         this.userService = userService;
-        this.userMapper = userMapper;
         this.eventCategoryService = eventCategoryService;
     }
 
     public EventDto getEventById(Long id) {
         Optional<Event> event = repository.findById(id);
-        EventDto dto = event.map(mapper::toDto)
+        return event.map(e -> mapper.toDto(e, getCurrentAuthenticatedUser()))
                 .orElseThrow(() -> new EntityNotFoundException("Event not found with ID: " + id));
-        UserDto currentUser = userMapper.toDto(getCurrentAuthenticatedUser());
-        dto.setIsCurrentUserRegistered(dto.getParticipants().contains(currentUser));
-        dto.setIsCurrentUserInWaitingList(dto.getWaitingList().contains(currentUser));
-        return dto;
+
     }
 
     public List<EventDto> getAllEventsSearched(SearchEvent search) {
-        return repository.findAll(search).stream().map(mapper::toDto).toList();
+        return repository.findAll(search).stream().map(e -> mapper.toDto(e, getCurrentAuthenticatedUser())).toList();
     }
 
     public Page<EventDto> getAllEventsPaged(SearchEvent search, Pageable pageable) {
-        return repository.findAll(search, pageable).map(mapper::toDto);
+        return repository.findAll(search, pageable).map(e -> mapper.toDto(e, getCurrentAuthenticatedUser()));
     }
 
     public List<EventCardDto> getAllEventsList(int type, OffsetDateTime date) {
@@ -95,7 +89,7 @@ public class EventService implements IEventService {
         newEvent.setLastUpdater(getCurrentAuthenticatedUser());
         newEvent.setState(EventState.DRAFT);
         newEvent.setCreatedDate(OffsetDateTime.now(ZoneId.systemDefault()));
-        return mapper.toDto(repository.save(newEvent));
+        return mapper.toDto(repository.save(newEvent), getCurrentAuthenticatedUser());
     }
 
     public EventDto updateEvent(EventFormDto updateDto) {
@@ -114,12 +108,12 @@ public class EventService implements IEventService {
             event.setStartDate(updateDto.getStartDate());
             event.setEndDate(updateDto.getEndDate());
             event.setSpotsAvailable(updateDto.getSpotsAvailable());
-            return mapper.toDto(repository.save(event));
+            return mapper.toDto(repository.save(event), getCurrentAuthenticatedUser());
         }).orElseThrow(() -> new EntityNotFoundException("Event not found with ID: " + updateDto.getId()));
     }
 
     @Transactional
-    public void addParticipant(Long idEvent, Long idUser) throws EventNotPublishedException {
+    public EventDto addParticipant(Long idEvent, Long idUser) throws EventNotPublishedException {
         Optional<Event> optEvent = repository.findById(idEvent);
         if (optEvent.isPresent()) {
             Event event = optEvent.get();
@@ -133,13 +127,14 @@ public class EventService implements IEventService {
             } else {
                 event.addParticipant(user);
             }
-            repository.save(event);
+
+            return mapper.toDto(repository.save(event), user);
         } else {
             throw new EntityNotFoundException("Event not found with ID: " + idEvent);
         }
     }
 
-    public void removeParticipant(Long idEvent, Long idUser) {
+    public EventDto removeParticipant(Long idEvent, Long idUser) {
         Optional<Event> optEvent = repository.findById(idEvent);
         if (optEvent.isPresent()) {
             Event event = optEvent.get();
@@ -154,7 +149,7 @@ public class EventService implements IEventService {
             } else if (event.getWaitingList().stream().map(EventWaitingList::getUser).toList().contains(user)){
                 event.removeFromWaitingList(user);
             }
-            repository.save(event);
+            return mapper.toDto(repository.save(event), user);
         } else {
             throw new EntityNotFoundException("Event not found with ID: " + idEvent);
         }
@@ -176,7 +171,7 @@ public class EventService implements IEventService {
         if (optEvent.isPresent()) {
             Event event = optEvent.get();
             event.setState(state);
-            return mapper.toDto(repository.save(event));
+            return mapper.toDto(repository.save(event), getCurrentAuthenticatedUser());
         } else {
             throw new EntityNotFoundException("Event not found with ID: " + idEvent);
         }

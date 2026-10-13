@@ -1,5 +1,6 @@
 package com.zeromus.eventmanager.model.mapper;
 
+import org.mapstruct.*;
 import com.zeromus.eventmanager.model.dto.EventCardDto;
 import com.zeromus.eventmanager.model.dto.EventDto;
 import com.zeromus.eventmanager.model.dto.EventFormDto;
@@ -7,8 +8,6 @@ import com.zeromus.eventmanager.model.dto.UserDto;
 import com.zeromus.eventmanager.model.entity.Event;
 import com.zeromus.eventmanager.model.entity.EventWaitingList;
 import com.zeromus.eventmanager.model.entity.User;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +18,26 @@ public interface EventMapper {
     @Mapping(target = "lastUpdater", source = "lastUpdater")
     @Mapping(target = "isCurrentUserRegistered", ignore = true)
     @Mapping(target = "isCurrentUserInWaitingList", ignore = true)
-    EventDto toDto(Event event);
+    EventDto toDto(Event event, @Context User currentUser);
+
+    @AfterMapping
+    default void setRegistrationFlags(Event entity, @MappingTarget EventDto dto, @Context User currentUser) {
+        if (currentUser != null && currentUser.getId() != null) {
+            Long userId = currentUser.getId();
+
+            boolean isRegistered = entity.getParticipants() != null && entity.getParticipants().stream()
+                    .anyMatch(u -> u.getId().equals(userId));
+
+            boolean isInWaitingList = entity.getWaitingList() != null && entity.getWaitingList().stream()
+                    .anyMatch(u -> u.getUser().getId().equals(userId));
+
+            dto.setIsCurrentUserRegistered(isRegistered);
+            dto.setIsCurrentUserInWaitingList(isInWaitingList);
+        } else {
+            dto.setIsCurrentUserRegistered(false);
+            dto.setIsCurrentUserInWaitingList(false);
+        }
+    }
 
     EventCardDto toCardDto (Event event);
 

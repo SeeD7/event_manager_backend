@@ -24,9 +24,9 @@ public interface IEventService {
 
     EventDto updateEvent(EventFormDto updateDto);
 
-    void addParticipant(Long idEvent, Long idUser) throws EventNotPublishedException;
+    EventDto addParticipant(Long idEvent, Long idUser) throws EventNotPublishedException;
 
-    void removeParticipant(Long idEvent, Long idUser);
+    EventDto removeParticipant(Long idEvent, Long idUser);
 
     EventDto changeState(Long idEvent, EventState state);
 

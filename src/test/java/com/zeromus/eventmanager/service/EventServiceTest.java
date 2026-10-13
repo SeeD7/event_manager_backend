@@ -32,12 +32,11 @@ import java.util.Collections;
 import java.util.Optional;
 
 import static com.zeromus.eventmanager.utils.EventUtils.*;
-import static com.zeromus.eventmanager.utils.EventUtils.createValidTestEventFormDto;
-import static com.zeromus.eventmanager.utils.UserUtils.USER_DTO;
-import static com.zeromus.eventmanager.utils.UserUtils.USER_ENTITY;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static com.zeromus.eventmanager.utils.EventUtils.createValidTestEventFormDto;
+import static com.zeromus.eventmanager.utils.UserUtils.USER_ENTITY;
+import static org.mockito.ArgumentMatchers.any;
 
 @ExtendWith(MockitoExtension.class)
 class EventServiceTest {
@@ -67,8 +66,9 @@ class EventServiceTest {
     @Test
     void getEventById_WhenIdIsOk_ShouldReturnEvent() {
         setUpAuthenticationMock();
+
         when(repository.findById(1L)).thenReturn(Optional.of(entity));
-        when(mapper.toDto(entity)).thenReturn(expectedDto);
+        when(mapper.toDto(entity, null)).thenReturn(expectedDto);
         EventDto result = service.getEventById(1L);
         Assertions.assertThat(result).isEqualTo(expectedDto);
 
@@ -85,18 +85,26 @@ class EventServiceTest {
 
     @Test
     void getAllEventsSearched_ShouldCallRepository() {
+        setUpAuthenticationMock();
+
         when(repository.findAll(search)).thenReturn(Collections.singletonList(entity));
-        when(mapper.toDto(entity)).thenReturn(expectedDto);
+        when(mapper.toDto(entity, null)).thenReturn(expectedDto);
         service.getAllEventsSearched(search);
         verify(repository, times(1)).findAll(search);
+
+        SecurityContextHolder.clearContext();
     }
 
     @Test
     void getAllEventsPaged_ShouldCallRepository() {
+        setUpAuthenticationMock();
+
         when(repository.findAll(search, pageable)).thenReturn(new PageImpl<>(Collections.singletonList(entity)));
-        when(mapper.toDto(entity)).thenReturn(expectedDto);
+        when(mapper.toDto(entity, null)).thenReturn(expectedDto);
         service.getAllEventsPaged(search, pageable);
         verify(repository, times(1)).findAll(any(), (Pageable) any());
+
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -107,7 +115,7 @@ class EventServiceTest {
         newDto.setId(null);
         newDto.setName("Un petit nom");
         when(mapper.toEntity(newDto)).thenReturn(entity);
-        when(mapper.toDto(entity)).thenReturn(expectedDto);
+        when(mapper.toDto(entity, null)).thenReturn(expectedDto);
         when(repository.save(entity)).thenReturn(entity);
         EventDto result = service.addEvent(newDto);
         Assertions.assertThat(result).isEqualTo(expectedDto);
@@ -129,7 +137,7 @@ class EventServiceTest {
         when(repository.findById(1L)).thenReturn(Optional.of(localEntity));
         when(repository.save(any())).thenReturn(localEntity); // Requis par ton mapper.toDto(repository.save)
         when(eventCategoryService.getEventCategoryEntityById(any())).thenReturn(CATEGORY_PERSO);
-        when(mapper.toDto(any())).thenReturn(localExpectedDto); // Requis pour le return du service
+        when(mapper.toDto(any(), any())).thenReturn(localExpectedDto); // Requis pour le return du service
 
         service.updateEvent(updatedDto);
         verify(repository, times(1)).save(any());
@@ -148,7 +156,7 @@ class EventServiceTest {
         when(repository.findById(any())).thenReturn(Optional.of(localEntity));
         when(repository.save(any())).thenReturn(localEntity);
         when(eventCategoryService.getEventCategoryEntityById(any())).thenReturn(CATEGORY_PERSO);
-        when(mapper.toDto(any())).thenReturn(localExpectedDto);
+        when(mapper.toDto(any(), any())).thenReturn(localExpectedDto);
 
         service.updateEvent(updatedDto);
         verify(repository, times(1)).save(any());
@@ -158,8 +166,6 @@ class EventServiceTest {
 
     @Test
     void participateEvent_WhenNoSpotAvailableDefined_ShouldCallRepository() throws EventNotPublishedException {
-        when(userService.getUserById(1L)).thenReturn(USER_DTO);
-        when(userMapper.toEntity(USER_DTO)).thenReturn(USER_ENTITY);
         entity.setSpotsAvailable(null);
         when(repository.findById(1L)).thenReturn(Optional.of(entity));
         service.addParticipant(1L,1L);
@@ -168,8 +174,6 @@ class EventServiceTest {
 
     @Test
     void participateEvent_WhenSpotAvailable_ShouldCallRepository() throws EventNotPublishedException {
-        when(userService.getUserById(1L)).thenReturn(USER_DTO);
-        when(userMapper.toEntity(USER_DTO)).thenReturn(USER_ENTITY);
         when(repository.findById(1L)).thenReturn(Optional.of(entity));
         service.addParticipant(1L,1L);
         verify(repository, times(1)).save(any());
@@ -177,8 +181,6 @@ class EventServiceTest {
 
     @Test
     void participateEvent_WhenNoSpotAvailable_ShouldCallRepository() throws EventNotPublishedException {
-        when(userService.getUserById(1L)).thenReturn(USER_DTO);
-        when(userMapper.toEntity(USER_DTO)).thenReturn(USER_ENTITY);
         when(repository.findById(1L)).thenReturn(Optional.of(entity));
         entity.addParticipant(USER_ENTITY);
         service.addParticipant(1L,1L);
@@ -204,8 +206,6 @@ class EventServiceTest {
 
     @Test
     void cancelEvent_ShouldCallRepository() {
-        when(userService.getUserById(1L)).thenReturn(USER_DTO);
-        when(userMapper.toEntity(USER_DTO)).thenReturn(USER_ENTITY);
         when(repository.findById(1L)).thenReturn(Optional.of(entity));
         service.removeParticipant(1L, 1L);
         verify(repository, times(1)).save(any());
@@ -221,6 +221,8 @@ class EventServiceTest {
 
     @Test
     void changeState_ShouldCallRepository() {
+        setUpAuthenticationMock();
+
         when(repository.findById(1L)).thenReturn(Optional.of(entity));
 
         int i =0;
@@ -228,6 +230,8 @@ class EventServiceTest {
             service.changeState(1L, event);
             verify(repository, times(++i)).save(any());
         }
+
+        SecurityContextHolder.clearContext();
     }
 
     @Test

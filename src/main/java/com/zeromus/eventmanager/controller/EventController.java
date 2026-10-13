@@ -1,5 +1,6 @@
 package com.zeromus.eventmanager.controller;
 
+import org.springframework.web.bind.annotation.*;
 import com.zeromus.eventmanager.exceptions.EventNotPublishedException;
 import com.zeromus.eventmanager.model.dto.EventCardDto;
 import com.zeromus.eventmanager.model.dto.EventDto;
@@ -12,7 +13,6 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -131,10 +131,10 @@ public class EventController {
      */
     @RolesAllowed({"USER", "ORGANIZER", "ADMIN"})
     @PutMapping("/event/{idEvent}/participate/{idUser}")
-    public ResponseEntity<Boolean> participate(@PathVariable final Long idEvent, @PathVariable final Long idUser) {
+    public ResponseEntity<EventDto> participate(@PathVariable final Long idEvent, @PathVariable final Long idUser) {
         try {
-            service.addParticipant(idEvent, idUser);
-            return new ResponseEntity<>(OK);
+            EventDto updated = service.addParticipant(idEvent, idUser);
+            return new ResponseEntity<>(updated, OK);
         } catch (EventNotPublishedException _) {
             return new ResponseEntity<>(NOT_ACCEPTABLE);
         } catch (Exception _) {
@@ -151,10 +151,10 @@ public class EventController {
      */
     @RolesAllowed({"USER", "ORGANIZER", "ADMIN"})
     @DeleteMapping("/event/{idEvent}/cancel/{idUser}")
-    public ResponseEntity<Void> cancel(@PathVariable final Long idEvent, @PathVariable final Long idUser) {
+    public ResponseEntity<EventDto> cancel(@PathVariable final Long idEvent, @PathVariable final Long idUser) {
         try {
-            service.removeParticipant(idEvent, idUser);
-            return new ResponseEntity<>(OK);
+            EventDto updated = service.removeParticipant(idEvent, idUser);
+            return new ResponseEntity<>(updated, OK);
         } catch (Exception _) {
             return new ResponseEntity<>(BAD_REQUEST);
         }
