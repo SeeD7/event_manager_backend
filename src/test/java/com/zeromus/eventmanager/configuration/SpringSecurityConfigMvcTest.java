@@ -2,7 +2,7 @@ package com.zeromus.eventmanager.configuration;
 
 import com.zeromus.eventmanager.model.dto.SecuredUserDto;
 import com.zeromus.eventmanager.model.enums.UserRole;
-import com.zeromus.eventmanager.service.UserService;
+import com.zeromus.eventmanager.service.impl.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,10 +16,11 @@ import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ActiveProfiles("test")
 @SpringBootTest
@@ -48,8 +49,8 @@ class SpringSecurityConfigMvcTest {
         when(userService.addUser(any())).thenReturn(null);
 
         mockMvc.perform(post("/user")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonContent))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonContent))
                 .andExpect(status().isCreated());
     }
 
@@ -69,8 +70,8 @@ class SpringSecurityConfigMvcTest {
     @Test
     void cors_shouldAllowConfiguredOrigin() throws Exception {
         mockMvc.perform(options("/users")
-                .header("Origin", "http://localhost:4200")
-                .header("Access-Control-Request-Method", "GET"))
+                        .header("Origin", "http://localhost:4200")
+                        .header("Access-Control-Request-Method", "GET"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:4200"));
     }

@@ -1,6 +1,6 @@
 package com.zeromus.eventmanager.configuration;
 
-import com.zeromus.eventmanager.service.UserService;
+import com.zeromus.eventmanager.service.IUserService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,7 +12,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -25,9 +25,9 @@ import java.util.List;
 @EnableMethodSecurity(jsr250Enabled = true)
 public class SpringSecurityConfig {
 
-    private final UserService userService;
+    private final IUserService userService;
 
-    public SpringSecurityConfig(final UserService userService) {
+    public SpringSecurityConfig(final IUserService userService) {
         this.userService = userService;
     }
 
@@ -55,7 +55,7 @@ public class SpringSecurityConfig {
                 )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((_, res, _) ->
-                            res.setStatus(HttpServletResponse.SC_UNAUTHORIZED)
+                                res.setStatus(HttpServletResponse.SC_UNAUTHORIZED)
                         )
                 );
 
@@ -77,9 +77,9 @@ public class SpringSecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(HttpSecurity http, BCryptPasswordEncoder bCryptPasswordEncoder) {
+    public AuthenticationManager authenticationManager(HttpSecurity http, PasswordEncoder passwordEncoder) {
         AuthenticationManagerBuilder authenticationManagerBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
-        authenticationManagerBuilder.userDetailsService(userService).passwordEncoder(bCryptPasswordEncoder);
+        authenticationManagerBuilder.userDetailsService(userService).passwordEncoder(passwordEncoder);
         return authenticationManagerBuilder.build();
     }
 }

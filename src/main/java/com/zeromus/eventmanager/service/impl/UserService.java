@@ -1,13 +1,14 @@
-package com.zeromus.eventmanager.service;
+package com.zeromus.eventmanager.service.impl;
 
 import com.zeromus.eventmanager.configuration.PasswordConfig;
-import com.zeromus.eventmanager.model.dto.SearchUserDto;
 import com.zeromus.eventmanager.model.dto.SecuredUserDto;
 import com.zeromus.eventmanager.model.dto.UserDto;
 import com.zeromus.eventmanager.model.entity.User;
 import com.zeromus.eventmanager.model.enums.UserRole;
 import com.zeromus.eventmanager.model.mapper.UserMapper;
+import com.zeromus.eventmanager.model.search.SearchUser;
 import com.zeromus.eventmanager.repository.UserRepository;
+import com.zeromus.eventmanager.service.IUserService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -21,9 +22,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
-@Service
+@Service("userService")
 @Transactional
-public class UserService implements UserDetailsService {
+public class UserService implements UserDetailsService, IUserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
@@ -33,6 +34,12 @@ public class UserService implements UserDetailsService {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.passwordConfig = passwordConfig;
+    }
+
+    private static void ifPresentThrowException(Optional<User> user) {
+        if (user.isPresent()) {
+            throw new EntityExistsException("User with email or username already exists");
+        }
     }
 
     @Override
@@ -57,10 +64,20 @@ public class UserService implements UserDetailsService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + id));
     }
 
+    public User getUserEntityById(Long id) {
+        Optional<User> user = userRepository.findById(id);
+        return user.orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + id));
+    }
+
     public UserDto getUserByUsername(String username) {
         Optional<User> user = userRepository.findByUsername(username);
         return user.map(userMapper::toDto)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with username: " + username));
+    }
+
+    public User getUserEntityByUsername(String username) {
+        Optional<User> user = userRepository.findByUsername(username);
+        return user.orElseThrow(() -> new EntityNotFoundException("User not found with username: " + username));
     }
 
     public UserDto getUserByEmail(String email) {
@@ -69,16 +86,11 @@ public class UserService implements UserDetailsService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + email));
     }
 
-    public Page<UserDto> getAllUsers(SearchUserDto search, Pageable pageable) {
+    public Page<UserDto> getAllUsersPaged(SearchUser search, Pageable pageable) {
         return userRepository.findAll(search, pageable).map(userMapper::toDto);
     }
 
     public UserDto addUser(SecuredUserDto user) {
-        Optional<User> testUserEmail = userRepository.findByEmail(user.getEmail());
-        Optional<User> testUserUsername = userRepository.findByUsername(user.getUsername());
-        if (testUserEmail.isPresent() || testUserUsername.isPresent()) {
-            throw new EntityExistsException("User with email or username already exists");
-        }
         user.setPassword(passwordConfig.passwordEncoder().encode(user.getPassword()));
         User newUser = userMapper.toEntity(user);
         return userMapper.toDto(userRepository.save(newUser));
@@ -113,12 +125,6 @@ public class UserService implements UserDetailsService {
             return userMapper.toDto(currentUser);
         } else {
             throw new EntityNotFoundException("User not found with id: " + id);
-        }
-    }
-
-    private static void ifPresentThrowException(Optional<User> user) {
-        if (user.isPresent()) {
-            throw new EntityExistsException("User with email or username already exists");
         }
     }
 
